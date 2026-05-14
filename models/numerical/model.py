@@ -23,8 +23,9 @@ from __future__ import annotations
 import time 
 import numpy as np 
 from datetime import datetime 
+from typing import Literal 
 
-from mps.data.types import NumericalInput, NumericalSignal
+from mps.data.types import Direction, NumericalInput, NumericalSignal
 from mps.models.numerical.extractor import FeatureExtractor
 
 # FeatureExtractor.FEATURE_NAMES 순서에서 각 피처의 열 인데스를 미리 매핑
@@ -43,7 +44,7 @@ class ThresholdModel:
         self._rsi_low = rsi_oversold 
         self._rsi_high = rsi_overbought
 
-    def predict(self, inp: NumericalInput) -> tuple[str, float, dict]:
+    def predict(self, inp: NumericalInput) -> tuple[Direction, float, dict]:
         """ 방향, 신뢰도, 피처 기여도 튜플 반환. 
         
         inp.window는 Z-score 정규화된 값이므로, 절대적인 RSI 35 기준이 아닌
@@ -73,7 +74,7 @@ class ThresholdModel:
         # 골든크로스: 히스토그램이 음수에서 양수로 전환 (MACD 선이 시그널 선으 상향 돌파)
         if rsi < self._rsi_low and macd_diff_prev < 0 and macd_diff_now >= 0:
             # RSI가 낮을수록 신뢰도 증가: (35-rsi)/35 + 0.3 (최대 1.0 캡)
-            conf = min(1.0, (self._rsi_low - rsi) / self.rsi_low + 0.3)
+            conf = min(1.0, (self._rsi_low - rsi) / self._rsi_low + 0.3)
             return "BUY", round(conf, 4), contrib 
         
         # --- SELL 조건: RSI 과매수 + MACD 데드크로스 ----------------------

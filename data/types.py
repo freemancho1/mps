@@ -9,6 +9,11 @@ from typing import Literal, Optional
 import numpy as np 
 
 
+# 판정방향을 결정하는 리터널 정의
+Direction = Literal["BUY", "SELL", "HOLD"]
+BSDirection = Literal["BUY", "SELL"]
+
+
 @dataclass
 class Bar:
     """ 분봉 기본 단위 (원시 시장 데이터).
@@ -73,7 +78,7 @@ class NumericalSignal:
     """
     ticker: str
     timestamp: datetime
-    direction: Literal["BUY", "SELL", "HOLD"]
+    direction: Direction
     confidence: float                  # 0.0~1.0
     feature_contrib: dict              # {"rsi_14": 28.3, "macd_diff": 0.12, ...}
     latency_ms: float
@@ -88,7 +93,7 @@ class PatternSignal:
     """
     ticker: str
     timestamp: datetime
-    direction: Literal["BUY", "SELL", "HOLD"]
+    direction: Direction
     confidence: float
     pattern_name: str
     source: Literal["RULE", "CNN", "VISION"]
@@ -109,7 +114,7 @@ class TradeSignal:
     """
     ticker: str
     timestamp: datetime
-    direction: Literal["BUY", "SELL"]   # HOLD 없음 — 합의 성공만 전달
+    direction: BSDirection              # HOLD 없음 — 합의 성공만 전달
     combined_score: float               # 0.0~1.0
     num_track_conf: float
     pat_track_conf: float
@@ -127,7 +132,7 @@ class Order:
     order_id: 백테스트에서는 "{ticker}_{시각}" 문자열, 실거래에서는 KIS 주문번호.
     """
     ticker: str
-    direction: Literal["BUY", "SELL"]
+    direction: BSDirection
     quantity: int
     order_type: Literal["MARKET", "LIMIT"]
     stop_loss: float           # 손절 기준가 (절대 가격, 원 단위)
