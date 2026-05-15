@@ -20,7 +20,7 @@ HistoricalSimulator - 과거 분봉 재생 기반 백테스트 엔진.
 from __future__ import annotations
 
 from collections import deque 
-from tqdm import tqdm 
+# from tqdm import tqdm 
 
 from mps.data.types import Bar, Order
 from mps.sys.config import settings
@@ -90,7 +90,8 @@ class HistoricalSimulator:
         open_order: Order | None = None     # 현재 보유중인 포지션 (None = 미보유)
 
         # ── 메일 루프: 봉 하나씩 재생 ────────────────────
-        for bar in tqdm(bars, desc="백테스트 진행"):
+        # for bar in tqdm(bars, desc="백테스트 진행"):
+        for bar in bars:
             buffer.append(bar)
 
             # ── 1. 보유 포지션 청산 체크 ───────────────────
