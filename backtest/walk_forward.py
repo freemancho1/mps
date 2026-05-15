@@ -23,7 +23,71 @@ WalkForwardValidator: 거래일 단위 슬라이딩 윈도우 검증(순차적)
 from __future__ import annotations
 
 import math 
+from typing import Optional
 
 from mps.sys.config import settings
 from mps.data.types import Bar 
-# TODO 2: backtest/simulator.py 작업 후 여기서부터 수행
+from .simulator import HistoricalSimulator
+from .evaluator import PerformanceReport
+
+_BARS_PER_DAY = 390   # KRX 09:00 ~ 15:30 = 390분(1분봉 기준)
+
+
+class WalkForwardValidator:
+    """ 
+    Walk-Forward: 버퍼 구간을 슬라이딩하면서 복수 구간 검증.
+
+    각 윈도우마다 독립 HistoricalSimulator 인스턴스를 생성하므로,
+    상태 오염없이 격리된 평가가 보장됨.
+    """
+    def __init__(
+        self,
+        buffer_days: Optional[int] = None, 
+        test_days: int = 10,
+        capital: Optional[float] = None, 
+    ) -> None:
+        if buffer_days is None:
+            buffer_days = math.ceil(settings.phase.lookback_minutes / _BARS_PER_DAY) + 1
+        self._buffer_days = buffer_days
+        self._test_days = test_days
+        self._capital = capital
+
+    def run(self, bars: list[Bar]) -> list[PerformanceReport]:
+        """ 
+        전체 bars에 걸쳐 슬라이딩 윈도우를 적용하고 각 구간의 성과 보고서 반환.
+
+        [윈도우 진행 방식]
+          - 윈도우 크기 = buffer_days + test_days
+          - start_idx를 test_days씩 증가
+
+        [ValueError 처리]
+          - 데이터 부족 구간(lookbook 미달)은 건너 뜀
+            → 이것은 정상 동작으로 데이터가 부족한 첫 윈도우는 skip
+        """
+        all_days = sorted({bar.timestamp.date() for bar in bars})
+        n = len(all_days)
+        window_size = self._buffer_days + self._test_days
+        
+        reports: list[PerformanceReport] = []
+
+        for start_idx in range(0, n - window_size, self._test_days):
+            buffer_end = start_idx + self._buffer_days
+            test_end = buffer_end + self._test_days
+
+            if test_end > n:
+                break   # 마지막에 불완전한 윈도우는 제외
+
+            # 윈도우 전체(버퍼+테스트) Bar 추출
+            # 버퍼 구간 = 지표 계산용 룩백, 테스트 구간 = 실제 신호 발생 구간
+            window_day_set = set(all_days[start_idx:test_end])
+            window_bars = [bar for bar in bars if bar.timestamp.date() in window_day_set]
+
+            try:
+                sim = HistoricalSimulator(capital=self._capital)
+                report = sim.run(window_bars)
+                reports.append(report)
+            except ValueError:
+                # 데이터 부족 → 이 윈도우는 skip (정상적으로 발생 가능)
+                continue 
+
+        return reports 

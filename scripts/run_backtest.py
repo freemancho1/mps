@@ -7,6 +7,7 @@ import sys
 
 from mps.data.store import LocalParquetStore
 from mps.data.loader import HistoricalDataLoader
+from mps.backtest.walk_forward import WalkForwardValidator
 from mps.sys.config import settings
 
 
@@ -46,7 +47,15 @@ def main():
     # 각 윈도우마다 독립 HistoricalSimulator를 생성하여 PerformanceReport 반환
     # 셔플없이 시간순으로 처리하며, 여러 구간의 평균 성과로 과적합 여부 판단.
     print("Walk-Forward 검증 실행 중 ...")
-    # TODO 1: WalkForwardValidator() 처리후 계속
+    validator = WalkForwardValidator(test_days=10, capital=args.capital)
+    reports = validator.run(bars)
+    print(f"\n Walk-Forward 결과 ({len(reports)}개 구간):")
+    for idx, report in enumerate(reports, 1):
+        print(f"  [{idx:02d}] {report}")
+
+    print("\n백테스트 완료.")
+    # 로그 파일 위치: logs/signals.jsonl, logs/orders.jsonl
+    print(f"로그 위치: {settings.log_dir}")
 
 
 def parse_args():
