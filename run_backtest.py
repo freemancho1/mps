@@ -15,21 +15,18 @@ import sys
 import argparse 
 from datetime import date
 
-from mps.sys import config as cfg
+from mps.sys import config as cfg 
 
 
 def main():
     args = parse_args()
-    
-    start_date = date(int(args.start[:4]), int(args.start[5:7]), int(args.start[8:]))
-    end_date = date(int(args.end[:4]), int(args.end[5:7]), int(args.end[8:]))
 
     # ── 테스트 정보 요약 ─────────────────────────
     _args = {
         "title": cfg.run.msg.title, 
         "ticker": args.ticker,
-        "start": start_date,
-        "end": end_date,
+        "start": date(int(args.start[:4]), int(args.start[5:7]), int(args.start[8:])),
+        "end": date(int(args.end[:4]), int(args.end[5:7]), int(args.end[8:])),
         "capital": args.capital,
         "roundtrip_cost": cfg.cost.roundtrip_cost
     }

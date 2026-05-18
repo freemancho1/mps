@@ -11,6 +11,8 @@ from . import _constants as const
 @dataclass
 class SysConfig:
     seed: int = 42 
+    phase: int = 1
+    
     timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo(const.CURR_TIMEZONE))
     date_format: str = const.DATE_FORMAT
 
