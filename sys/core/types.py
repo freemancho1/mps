@@ -37,7 +37,7 @@ class Bar:
     high: float 
     low: float 
     close: float 
-    valume: int 
+    volume: int 
     is_complete: bool = False   # 봉 완성 여부 ─ False인 봉은 파이프라인에 진입 불가    
     
 

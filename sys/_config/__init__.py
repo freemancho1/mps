@@ -1,9 +1,10 @@
 from __future__ import annotations 
 
+import os 
 from dataclasses import dataclass, field 
 from pathlib import Path
 from zoneinfo import ZoneInfo 
-from typing import Any
+from datetime import time
 
 from . import _constants as const 
 
@@ -17,8 +18,10 @@ class SysConfig:
     date_format: str = const.DATE_FORMAT
 
     # 마켓 정보
-    market_open_time: str = const.MARKET_OPEN_TIME
-    market_clost_time: str = const.MARKET_CLOSE_TIME
+    _open = const.MARKET_OPEN_TIME
+    _close = const.MARKET_CLOSE_TIME
+    market_open_time: time = time(int(_open[:2]), int(_open[3:]))
+    market_close_time: time = time(int(_close[:2]), int(_close[3:]))
     minutes_per_day: int = const.MINUTES_PER_DAY
     
     # 룩백 윈도우: 신호 생성 전 반드시 확보해야 할 과거 봉 수
@@ -41,28 +44,27 @@ class RunBacktestConfig:
         end_date: str = "--end"
         capital: str = "--capital"
 
-    @dataclass(frozen=True)
-    class _msg:
-        title: str = "MPS Phase 1 백테스트"
-        ticker: str = "종목 코드 (기본값: 삼성전자)"
-        start_date: str = "시작일 YYYY-MM-DD"
-        end_date: str = "종료일 YYYY-MM-DD"
-        capital: str = "초기 자본"
-
-        @staticmethod
-        def summary(args: dict[str, Any]) -> str:
-            return (
-                f"\n{'='*60}\n"
-                f"  {args['title']}\n"
-                f"    - 종목: {args['ticker']}\n"
-                f"    - 기간: {args['start']} ~ {args['end']}\n"
-                f"    - 초기자본: {args['capital']:,.0f}원\n"
-                f"    - 보수적 왕복 비용: {args['roundtrip_cost']:.2%}\n"
-                f"{'='*60}\n"
-            )
-
     key: _key = field(default_factory=_key)
-    msg: _msg = field(default_factory=_msg)
+    
+    
+@dataclass 
+class KisApiConfig:
+    
+    @property 
+    def app_key(self) -> str:
+        return os.environ.get(const.VAR_KIS_APP_KEY, "")
+    
+    @property 
+    def app_secret(self) -> str: 
+        return os.environ.get(const.VAR_KIS_APP_SECRET, "")
+    
+    @property 
+    def app_account_no(self) -> str:
+        return os.environ.get(const.VAR_KIS_ACCOUNT_NO, "")
+    
+    @property
+    def mock(self) -> bool:
+        return os.environ.get(const.VAR_KIS_MOCK, "true").lower() == "true"
 
 
 @dataclass
@@ -75,6 +77,18 @@ class LogConfig:
         d.mkdir(parents=True, exist_ok=True)
         return d
 
+
+@dataclass(frozen=True)
+class StoreConfig:
+    base_dir: Path = field(repr=False)  # 외부 주입
+    fname: str = const.STORE_FNAME
+    
+    @property 
+    def dir(self) -> Path:
+        d = self.base_dir / const.STORE_DIR
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+    
 
 @dataclass(frozen=True)
 class CostConfig:
@@ -108,11 +122,15 @@ class _Config:
     run: RunBacktestConfig = field(default_factory=RunBacktestConfig)
     log: LogConfig = field(init=False)
     cost: CostConfig = field(default_factory=CostConfig)
+    kis: KisApiConfig = field(default_factory=KisApiConfig)
 
     def __post_init__(self):
-        self.data_dir = self.root_dir / const.DATA_DIR
-        self.log = LogConfig(base_dir=self.data_dir)
+        self._data_dir = self.root_dir / const.DATA_DIR
+        self.log = LogConfig(base_dir=self._data_dir)
+        self.store = StoreConfig(base_dir=self._data_dir)
+        
 
-
+from . import _messages as messages 
 # ── 전역 싱글톤 ─────────────────────────
 config = _Config()
+

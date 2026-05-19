@@ -15,7 +15,8 @@ import sys
 import argparse 
 from datetime import date
 
-from mps.sys import config as cfg 
+from mps.sys.dataio import LocalParquetStore, HistoricalDataLoader
+from mps.sys import cfg, msg
 
 
 def main():
@@ -23,41 +24,45 @@ def main():
 
     # ── 테스트 정보 요약 ─────────────────────────
     _args = {
-        "title": cfg.run.msg.title, 
+        "title": msg.run.info.title, 
         "ticker": args.ticker,
-        "start": date(int(args.start[:4]), int(args.start[5:7]), int(args.start[8:])),
-        "end": date(int(args.end[:4]), int(args.end[5:7]), int(args.end[8:])),
+        "start": date(int(args.start[:4]), int(args.start[4:6]), int(args.start[6:])),
+        "end": date(int(args.end[:4]), int(args.end[4:6]), int(args.end[6:])),
         "capital": args.capital,
         "roundtrip_cost": cfg.cost.roundtrip_cost
     }
-    print(cfg.run.msg.summary(_args))
+    print(msg.run.info.summary(_args))
+    print(msg.run.sys.summary(cfg.sys))
 
     # ── 데이터 로드 ────────────────────────────
+    print(msg.run.data_load)
+    store = LocalParquetStore()
+    loader = HistoricalDataLoader(store)
     
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description=cfg.run.msg.title)
+    p = argparse.ArgumentParser(description=msg.run.info.title)
     p.add_argument(
         cfg.run.key.ticker,             # 종목코드
         default=cfg.run.tickers[0],     # 기본값: 삼성전자 005930
-        help=cfg.run.msg.ticker
+        help=msg.run.info.ticker
     )
     p.add_argument(
         cfg.run.key.start_date,         # 테스트 시작일
         default=cfg.run.start_date,     # 기본값: 2025-01-01
-        help=cfg.run.msg.start_date
+        help=msg.run.info.start
     )
     p.add_argument(
         cfg.run.key.end_date,           # 테스트 종료일
         default=cfg.run.end_date,       # 기본값: 2025-12-31
-        help=cfg.run.msg.end_date
+        help=msg.run.info.end
     )
     p.add_argument(
         cfg.run.key.capital,            # 초기 투자 금액
         type=float, 
         default=cfg.run.capital,        # 기본값: 10,000,000 원
-        help=cfg.run.msg.capital
+        help=msg.run.info.capital
     )
     return p.parse_args()
 

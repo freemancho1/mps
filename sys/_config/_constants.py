@@ -1,7 +1,7 @@
 # ── TEST DATA ────────────────────────────
 TEST_TICKERS                = ["005930"]
-TEST_START_DATE             = "2025-01-01"
-TEST_END_DATE               = "2025-12-31"
+TEST_START_DATE             = "20250101"
+TEST_END_DATE               = "20251231"
 TEST_CAPITAL                = 10_000_000.0
 LOOKBACK_MINUTES            = 120
 FORCE_CLOSE_MINUTES_BEFORE  = 15
@@ -17,12 +17,19 @@ SEED                        = 42
 # directory
 DATA_DIR                    = "data"
 STORE_DIR                   = "store"
+STORE_FNAME                 = "minute_bars.parquet"
 LOG_DIR                     = "logs"
 SNAPSHOTS_DIR               = "snapshots"
 
 # date & time
 CURR_TIMEZONE               = "Asia/Seoul"
 DATE_FORMAT                 = "%Y%m%d"
+
+# KIS API Config
+VAR_KIS_APP_KEY             = "KIS_APP_KEY"
+VAR_KIS_APP_SECRET          = "KIS_APP_SECRET"
+VAR_KIS_ACCOUNT_NO          = "KIS_ACCOUNT_NO"
+VAR_KIS_MOCK                = "KIS_MOCK"
 
 # ── MARKET INFO ────────────────────────────
 MARKET_OPEN_TIME            = "09:00"
