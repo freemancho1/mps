@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import sys 
 import argparse 
-from datetime import date
+from datetime import date, datetime
 
 from mps.sys.dataio import LocalParquetStore, HistoricalDataLoader
 from mps.sys import cfg, msg
@@ -34,10 +34,22 @@ def main():
     print(msg.run.info.summary(_args))
     print(msg.run.sys.summary(cfg.sys))
 
-    # ── 데이터 로드 ────────────────────────────
-    print(msg.run.data_load)
+    # ── 1단계: 데이터 로드 ───────────────────────
+    print(msg.run.data_load.title(datetime.now()))
     store = LocalParquetStore()
     loader = HistoricalDataLoader(store)
+    load, bars = loader.load(args.ticker, _args["start"], _args["end"])
+    print(msg.run.data_load.result(load, bars))
+    
+    if not bars:
+        print(msg.run.data_load.result_error(load))
+        return 
+    
+    # ── 2단계: Walk-Forward 검증 ─────────────────────
+    # 학습 60거래일 + 테스트 10거래일 슬라이딩 윈도우를 반복
+    # 각 윈도우마다 독립 HistoricalSimulator를 생성하여, PerformanceReport 반환
+    # → 여러 구간의 평균 성과로 과적합 여부 판단
+    print(msg.run.wf.title(datetime.now()))
     
 
 

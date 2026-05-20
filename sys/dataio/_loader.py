@@ -34,8 +34,8 @@ class HistoricalDataLoader:
         ticker: str, 
         start: date, 
         end: date, 
-        force_refresh: bool = False,
-    ) -> list[Bar]:
+        force_refresh: bool = cfg.sys.force_refresh,
+    ) -> tuple[str, list[Bar]]:
         """ 
         캐시 우선 로드. 
         ─ 캐시가 없거나 force_refresh=True이면 수집 후 저장
@@ -56,22 +56,22 @@ class HistoricalDataLoader:
         
         cached = self._store.load_bars(ticker, start_dt, end_dt)
         if cached and not force_refresh:
-            return cached
+            return cfg.store.load_store, cached
         
-        bars = self._fetch(ticker, start, end)
+        load, bars = self._fetch(ticker, start, end)
         print(msg.loader.fetch.data_size(bars))
         self._store.save_bars(bars)
-        return bars 
+        return load, bars 
     
-    def _fetch(self, ticker: str, start: date, end: date) -> list[Bar]:
+    def _fetch(self, ticker: str, start: date, end: date) -> tuple[str, list[Bar]]:
         """ API KEY 여부에 따라 합성 또는 읽어옴 """
         if cfg.kis.app_key:
-            print(msg.loader.fetch.from_kis)
+            print(msg.loader.fetch.from_kis())
             return self._fetch_kis(ticker, start, end)
-        print(msg.loader.fetch.from_synthetic)
+        print(msg.loader.fetch.from_synthetic())
         return self._fetch_synthetic(ticker, start, end)
     
-    def _fetch_kis(self, ticker: str, start: date, end: date) -> list[Bar]:
+    def _fetch_kis(self, ticker: str, start: date, end: date) -> tuple[str, list[Bar]]:
         """ 
         KIS REST API 분봉 조회 (stub ─ API키 설정 후 kis_client.py에서 구현)
         
@@ -82,7 +82,7 @@ class HistoricalDataLoader:
         """
         raise NotImplementedError(msg.loader.fetch.kis_not_implemented)
     
-    def _fetch_synthetic(self, ticker: str, start: date, end: date) -> list[Bar]:
+    def _fetch_synthetic(self, ticker: str, start: date, end: date) -> tuple[str, list[Bar]]:
         """ pykrx 일봉 OHLCV → 분봉 390 * 영업일 수 합성 """
         from_str = start.strftime(cfg.sys.date_format)
         to_str = end.strftime(cfg.sys.date_format)
@@ -92,12 +92,12 @@ class HistoricalDataLoader:
         print(msg.loader.fetch.pykrx_result(df))
         if df.empty:
             print(msg.loader.fetch.pykrx_error)
-            return []
+            return cfg.store.load_pykrx, []
         
         bars: list[Bar] = []
         rng = np.random.default_rng(seed=cfg.sys.seed)      # seed=42 고정
-        for day, row in df.itertuples():
-            d: date = cast(pd.Timestamp, day).date()
+        for row in df.itertuples():
+            d: date = cast(pd.Timestamp, row.Index).date()
             o = float(cast(Any, row.시가))
             h = float(cast(Any, row.고가))
             l = float(cast(Any, row.저가))
@@ -105,7 +105,7 @@ class HistoricalDataLoader:
             v = int(cast(Any, row.거래량))
             bars.extend(_synthesize_minute_bars(ticker, d, o, h, l, c, v, rng))
             
-        return bars 
+        return cfg.store.load_pykrx, bars 
             
 
 def _synthesize_minute_bars(
@@ -135,7 +135,11 @@ def _synthesize_minute_bars(
 
     # 누적 수익률 → 가격 경로
     prices = day_open * np.cumprod(1 + increments)
-    prices = np.clip(prices, day_low, day_high)
+    p_min, p_max = prices.min(), prices.max()
+    if p_max > p_min:
+        prices = day_low + (prices - p_min) / (p_max - p_min) * (day_high - day_low)
+    else:
+        prices[:] = float(day_open)
     prices[-1] = day_close  # 마지막 봉 종가를 일봉 종가에 강제 일치
 
     # 거래량 분산: 실제 KOSPI 패턴 모방 (시가·점심·마감 집중)

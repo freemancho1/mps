@@ -5,6 +5,7 @@ TEST_END_DATE               = "20251231"
 TEST_CAPITAL                = 10_000_000.0
 LOOKBACK_MINUTES            = 120
 FORCE_CLOSE_MINUTES_BEFORE  = 15
+FORCE_REFRESH               = False         # 데이터 강제로 다시 읽어올도록 설정
 
 COMMISSION_RATE             = 0.00015       # 증권사 수수료(편도 0.015%)
 TAX_RATE                    = 0.0018        # 코스피 매도 세율 (0.18%)
@@ -30,6 +31,11 @@ VAR_KIS_APP_KEY             = "KIS_APP_KEY"
 VAR_KIS_APP_SECRET          = "KIS_APP_SECRET"
 VAR_KIS_ACCOUNT_NO          = "KIS_ACCOUNT_NO"
 VAR_KIS_MOCK                = "KIS_MOCK"
+
+# 데이터 출처
+LOAD_STORE                  = "STORE"
+LOAD_KIS                    = "KIS"
+LOAD_PYKRX                  = "PYKRX"
 
 # ── MARKET INFO ────────────────────────────
 MARKET_OPEN_TIME            = "09:00"

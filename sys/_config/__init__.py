@@ -27,6 +27,7 @@ class SysConfig:
     # 룩백 윈도우: 신호 생성 전 반드시 확보해야 할 과거 봉 수
     lookback_minutes: int = const.LOOKBACK_MINUTES
     force_close_minutes_before: int = const.FORCE_CLOSE_MINUTES_BEFORE
+    force_refresh: bool = const.FORCE_REFRESH
 
 
 @dataclass
@@ -82,6 +83,10 @@ class LogConfig:
 class StoreConfig:
     base_dir: Path = field(repr=False)  # 외부 주입
     fname: str = const.STORE_FNAME
+    
+    load_store: str = const.LOAD_STORE
+    load_kis: str = const.LOAD_KIS
+    load_pykrx: str = const.LOAD_PYKRX
     
     @property 
     def dir(self) -> Path:
