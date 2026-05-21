@@ -30,6 +30,25 @@ from dataclasses import dataclass
 
 
 @dataclass 
+class TradeRecord:
+    """ 
+    완결된 거래 한 건의 기록 (진입 + 청산)
+
+    HistoricalSimulator가 청산 시마다 생성하여 리스트에 추가.
+    PerformanceEvaluator.evaluate()의 입력으로 사용
+    """
+    ticker: str 
+    direction: str              # "BUY" or "SELL"
+    entry_price: float 
+    exit_price: float 
+    quantity: int 
+    entry_time: object          # 진입 시 order_id 문자열 (예: "005930_091030")
+    exit_time: object           # 청산 봉의 timestamp (datetime)
+    exit_reason: str            # TAKE_PROFIT / STOP_LOSS / TIMEOUT / FORCE_CLOSE
+    cost: float                 # 왕복 총 비용
+    
+
+@dataclass 
 class PerformanceReport:
     """ 백테스트 성과 요약 보고서 """
     total_trades: int 

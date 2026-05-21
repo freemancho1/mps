@@ -19,30 +19,70 @@ HistoricalSimulator ─ 과거 분봉 재생 기반 백테스트 엔진
 """
 from __future__ import annotations 
 
+from typing import Optional 
 from collections import deque 
 
 from mps.sys import cfg, msg, MPF_STYLE
-from mps.sys.core.types import Bar 
-from mps.pipline.evaluator import PerformanceReport
+from mps.sys.core.types import Bar, Order
+from mps.pipline.evaluator import PerformanceReport, TradeRecord
 from mps.pipline.features.validator import BarValidator
 
 
 class HistoricalSimulator: 
     def __init__(
         self,
-        capital: float = cfg.run.capital,
-        lookback_minutes: int = cfg.sys.lookback_minutes
+        capital: float = cfg.run.capital,                   # 10,000,000.0원
+        lookback_minutes: int = cfg.sys.lookback_minutes    # 120
     ) -> None:
         self._capital = capital 
         self._lookback_minutes = lookback_minutes
-        print(msg.hs.init(self))
+        # print(msg.hs.init(self))
         
         self._validator = BarValidator()
         
     def run(self, bars: list[Bar]) -> None:
         print(msg.hs.run_info(bars))
+        # is_complete=False 봉이 섞여 있으면 look-ahead bias 발생 위험
         bars = self._validator.filter(bars)
-        # TODO: 3. 여기서 부터 진행
+
+        # 룩백 + 1 이상 없으면 의미 있는 백테스트 불가
+        if len(bars) < self._lookback_minutes + 1:
+            raise ValueError(msg.hs.lookback_under_err(bars, self._lookback_minutes+1))
+        
+        # 상태변수 초기화
+        # maxlen = lookback + 50: 가장 오래된 봉이 자동 삭제 → 메모리 효율
+        # +50은 기술 지표 초기화 구간(NaN봉)을 여유롭게 포함하기 위함
+        buffer: deque[Bar] = deque(maxlen=self._lookback_minutes + 50)  # 120+50 = 170
+        # print(msg.hs.size_check(bars, buffer))
+        trades: list[TradeRecord] = []      # 완결된 거래에 대한 기록
+        cash = self._capital                # 현재 사용 가능한 현금 (총 자산)
+        open_order: Optional[Order] = None  # 현재 보유 중인 포지션 (None = 미보유)
+        
+        # ── 메인 루프: 봉 하나씩 생성 ─────────────────────
+        for bar in bars:
+            buffer.append(bar)
+
+            # ── 1. 현재 보유중인 포지션이 있으면 청산 체크 ───────────
+            # open_order가 있으면 현재 봉 종가로 TP·SL·만료 조건 확인
+            if open_order is not None:
+                # TODO: 4 여기 작성해야 함
+                pass 
+
+            # ── 2. 룩백 미달 구간은 신호 생성 생략 ───────────────
+            # buffer에 lookback 봉 이상 쌓이기 전까지는 지표 계산이 의미 없음
+            if len(buffer) < self._lookback_minutes:
+                continue 
+
+            # ── 3. 현재 미처리 포지션이 있으면 신규 구매 생략(한번에 하나의 거래만) ──
+            if open_order is not None:
+                continue
+
+            # deque 슬라이싱을 위해 list로 변환
+            buffer_list = list(buffer)
+
+            # ── 4. 피처 추출 및 정규화 ───────────────────────
+            # TODO: 5 self._latency 처리 후 계속
+
         
         return
         

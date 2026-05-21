@@ -68,11 +68,13 @@ class WalkForwardValidator:
             print(msg.wfv.win_bars_info(start_idx, window_bars))
             
             try:
+                # 모든 시뮬레이터가 동일한 조건(동일한 초기 자본금)으로 실행되야 하기 때문에
+                # 모든 시뮬레이터에 입력받은 동일한 초기 자본금으로 실행함
                 simulator = HistoricalSimulator(capital=self._capital)
                 report = simulator.run(window_bars)
                 # TODO: 2. HistoricalSimulator.run() 작업 후
-            except ValueError:
-                print(msg.wfv.err_win_bars(window_bars))
+            except ValueError as valerr:
+                print(msg.wfv.err_win_bars(valerr))
                 continue
         
         return reports

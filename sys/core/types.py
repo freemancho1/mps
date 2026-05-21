@@ -17,6 +17,9 @@ from typing import Literal, Optional
 
 Direction = Literal["BUY", "SELL", "HOLD"]
 BSDirection = Literal["BUY", "SELL"]
+PatternSource = Literal["RULE", "CNN", "VISION"]
+OrderType = Literal["MARKET", "LIMIT"]
+OrderStatus = Literal["PENDING", "FILLED", "PARTIAL", "CANCELLED"]
 
 
 # ── 원시 데이터 타입 ─────────────────────────────
@@ -72,3 +75,24 @@ class PatternInput:
     timestamp: datetime 
     ohlcv_series: np.ndarray                    # shape [N, 5] ─ dtype=float32
     chart_image: Optional[np.ndarray] = None    # shape [H, W, C] ─ Phase-1에서는 사용 않함
+
+
+@dataclass 
+class Order:
+    """ 
+    RiskManager가 승인하여 실행 레이어(PaperTrader/KISOrderClient)에 전달하는 주문.
+
+    stop_loss, take_profig: Triple Barrier 기준으로 TripleBarrierGuard가 계산한 절대 가격
+    expire_at: min(진입시간 + 60분, 당일 강제청산 시간(15:15))
+    order_id: 백테스트에서 "{ticker}_{시각}" 문자열, 실거래에서는 KIS 주문번호
+              TradeRecord의 entry_time 값으로 사용
+    """
+    ticker: str 
+    direction: BSDirection
+    quantity: int 
+    order_type: OrderType
+    stop_loss: float                # 손절 기준가 (절대 가격, 원 단위)
+    take_profit: float              # 익절 기준가 (절대 가격, 원 단위)
+    expire_at: datetime             # 이 시각 이후 봉에서 TIMEOUT 또는 FORCE_CLOSE 처리
+    price: Optional[float] = None   # 진입가 (submit_order 이후 채워짐)
+    order_id: Optional[str] = None  # 고유 주문 id

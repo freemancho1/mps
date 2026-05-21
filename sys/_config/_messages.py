@@ -83,11 +83,14 @@ wfv = DictDot(          # Walk-Forward Validator
                             f"윈도우 크기: {wsize}"
                         ),
     win_bars_info       = lambda s, w: _MF(f"[{s:>3}] 윈도우 기간: {w[0].timestamp.date()} ~ {w[-1].timestamp.date()}, 크기: {len(w)}"),
-    err_win_bars        = lambda w: _MF(f"[ERROR] 윈도우 크기 에러: 윈도우 크기 = {len(w)}"),
+    err_win_bars        = lambda e: _MF(f"[ERROR] {e}"),
     
 )
 
 hs = DictDot(           # HistoricalSimulator
     init                = lambda s: _MF(f"HistoricalSimulator 초기 설정값: capital={s._capital}, lookback_minutes={s._lookback_minutes}"),
     run_info            = lambda b: _MF(f"윈도우 정보: {b[0].timestamp.date()} ~ {b[-1].timestamp.date()}, size={len(b):,}"),
+    lookback_under_err  = lambda bars, lb: f"입력된 데이터가 백테스트를 위한 최소 데이터({lb})보다 적습니다.(입력 데이터: {len(bars)}봉)",
+    size_check          = lambda bars, buff: _MF(f"사이즈 비교: len(bars) = {len(bars)}, len(buffer) = {len(buff)}"),
+    
 )
