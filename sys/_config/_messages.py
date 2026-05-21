@@ -77,5 +77,17 @@ loader = DictDot(
 )
 
 wfv = DictDot(          # Walk-Forward Validator
+    init                = lambda s: _MF(f"WFV 초기 설정값: buffer_days={s._buffer_days}일, test_days={s._test_days}일, capital={s._capital:,}원"),
+    run_info            = lambda tdays, wsize: _MF(
+                            f"학습 데이타 일자: [{tdays[0]} ~ {tdays[-1]} ({len(tdays)})], "
+                            f"윈도우 크기: {wsize}"
+                        ),
+    win_bars_info       = lambda s, w: _MF(f"[{s:>3}] 윈도우 기간: {w[0].timestamp.date()} ~ {w[-1].timestamp.date()}, 크기: {len(w)}"),
+    err_win_bars        = lambda w: _MF(f"[ERROR] 윈도우 크기 에러: 윈도우 크기 = {len(w)}"),
+    
+)
 
+hs = DictDot(           # HistoricalSimulator
+    init                = lambda s: _MF(f"HistoricalSimulator 초기 설정값: capital={s._capital}, lookback_minutes={s._lookback_minutes}"),
+    run_info            = lambda b: _MF(f"윈도우 정보: {b[0].timestamp.date()} ~ {b[-1].timestamp.date()}, size={len(b):,}"),
 )

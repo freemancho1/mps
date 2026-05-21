@@ -48,7 +48,8 @@ def main():
         test_days=args.test_days, 
         capital=args.capital
     )
-
+    reports = validator.run(bars)
+    # TODO: 1 - WalkForwardValidator.run() 작업 후
 
 def parse_args():
     p = argparse.ArgumentParser(description=msg.run.info.title)
