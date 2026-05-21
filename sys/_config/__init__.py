@@ -1,6 +1,7 @@
 from __future__ import annotations 
 
 import os 
+import math 
 from dataclasses import dataclass, field 
 from pathlib import Path
 from zoneinfo import ZoneInfo 
@@ -26,6 +27,7 @@ class SysConfig:
     
     # 룩백 윈도우: 신호 생성 전 반드시 확보해야 할 과거 봉 수
     lookback_minutes: int = const.LOOKBACK_MINUTES
+    buffer_days = math.ceil(lookback_minutes / minutes_per_day) + 1
     force_close_minutes_before: int = const.FORCE_CLOSE_MINUTES_BEFORE
     force_refresh: bool = const.FORCE_REFRESH
 
@@ -37,6 +39,7 @@ class RunBacktestConfig:
     start_date: str = const.TEST_START_DATE
     end_date: str = const.TEST_END_DATE    
     capital: float = const.TEST_CAPITAL
+    test_days: int = const.TEST_DAYS
 
     @dataclass(frozen=True)
     class _key:
@@ -44,7 +47,8 @@ class RunBacktestConfig:
         start_date: str = "--start"
         end_date: str = "--end"
         capital: str = "--capital"
-
+        test_days: str = "--test_days"
+        
     key: _key = field(default_factory=_key)
     
     

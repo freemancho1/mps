@@ -3,6 +3,7 @@ TEST_TICKERS                = ["005930"]
 TEST_START_DATE             = "20250101"
 TEST_END_DATE               = "20251231"
 TEST_CAPITAL                = 10_000_000.0
+TEST_DAYS                   = 10
 LOOKBACK_MINUTES            = 120
 FORCE_CLOSE_MINUTES_BEFORE  = 15
 FORCE_REFRESH               = False         # 데이터 강제로 다시 읽어올도록 설정

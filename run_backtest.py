@@ -16,29 +16,23 @@ import argparse
 from datetime import date, datetime
 
 from mps.sys.dataio import LocalParquetStore, HistoricalDataLoader
+from mps.pipline.walk_forward import WalkForwardValidator
 from mps.sys import cfg, msg
 
 
 def main():
-    args = parse_args()
-
     # ── 테스트 정보 요약 ─────────────────────────
-    _args = {
-        "title": msg.run.info.title, 
-        "ticker": args.ticker,
-        "start": date(int(args.start[:4]), int(args.start[4:6]), int(args.start[6:])),
-        "end": date(int(args.end[:4]), int(args.end[4:6]), int(args.end[6:])),
-        "capital": args.capital,
-        "roundtrip_cost": cfg.cost.roundtrip_cost
-    }
-    print(msg.run.info.summary(_args))
-    print(msg.run.sys.summary(cfg.sys))
-
+    args = parse_args()
+    print(msg.run.info.summary(args, cfg, msg))
+    
     # ── 1단계: 데이터 로드 ───────────────────────
+    start_date = date(int(args.start[:4]), int(args.start[4:6]), int(args.start[6:]))
+    end_date = date(int(args.end[:4]), int(args.end[4:6]), int(args.end[6:]))
+
     print(msg.run.data_load.title(datetime.now()))
     store = LocalParquetStore()
     loader = HistoricalDataLoader(store)
-    load, bars = loader.load(args.ticker, _args["start"], _args["end"])
+    load, bars = loader.load(args.ticker, start_date, end_date)
     print(msg.run.data_load.result(load, bars))
     
     if not bars:
@@ -50,7 +44,10 @@ def main():
     # 각 윈도우마다 독립 HistoricalSimulator를 생성하여, PerformanceReport 반환
     # → 여러 구간의 평균 성과로 과적합 여부 판단
     print(msg.run.wf.title(datetime.now()))
-    
+    validator = WalkForwardValidator(
+        test_days=args.test_days, 
+        capital=args.capital
+    )
 
 
 def parse_args():
@@ -62,19 +59,25 @@ def parse_args():
     )
     p.add_argument(
         cfg.run.key.start_date,         # 테스트 시작일
-        default=cfg.run.start_date,     # 기본값: 2025-01-01
+        default=cfg.run.start_date,     # 기본값: 20250101
         help=msg.run.info.start
     )
     p.add_argument(
         cfg.run.key.end_date,           # 테스트 종료일
-        default=cfg.run.end_date,       # 기본값: 2025-12-31
+        default=cfg.run.end_date,       # 기본값: 20251231
         help=msg.run.info.end
     )
     p.add_argument(
         cfg.run.key.capital,            # 초기 투자 금액
         type=float, 
-        default=cfg.run.capital,        # 기본값: 10,000,000 원
+        default=cfg.run.capital,        # 기본값: 10_000_000 원
         help=msg.run.info.capital
+    )
+    p.add_argument(
+        cfg.run.key.test_days,          # 테스트 거래일
+        type=int,
+        default=cfg.run.test_days,      # 기본값: 10
+        help=msg.run.info.test_days,
     )
     return p.parse_args()
 

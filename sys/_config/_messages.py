@@ -15,32 +15,28 @@ def _MF(msg: str) -> str:
     return f"{location} = {msg}"
 
 run = DictDot(
-    sys = DictDot(
-        summary         = lambda v: _MF(
-                            f"\n{'='*60}\n"
-                            f"  시스템 정보\n"
-                            f"    - Phase: {v.phase}\n"
-                            f"    - seed: {v.seed}\n"
-                            f"    - 거래 시간: {v.market_open_time} ~ {v.market_close_time} ({v.timezone})\n"
-                            f"    - 일일 거래 분(봉) 수: {v.minutes_per_day}분/일\n"
-                            f"    - 룩백 윈도우 수: {v.lookback_minutes}분(개)\n"
-                            f"    - 강제 종료 시간: {v.force_close_minutes_before}분\n"
-                            f"{'='*60}\n"            
-                        ),
-    ),
     info = DictDot(
         title           = "MPS Phase-1 백테스트",
         ticker          = "종목코드 (기본값: 삼성전자(005930))",
-        start           = "시작일 YYYY-MM-DD",
-        end             = "종료일 YYYY-MM-DD",
+        start           = "시작일 YYYYMMDD",
+        end             = "종료일 YYYYMMDD",
         capital         = "초기 자본",
-        summary         = lambda args: _MF(
+        test_days       = "테스트 거래일 (기본값: 10)",
+        summary         = lambda a, c, m: _MF(
                             f"\n{'='*60}\n"
-                            f"  {args['title']}\n"
-                            f"    - 종목: {args['ticker']}\n"
-                            f"    - 기간: {args['start']} ~ {args['end']}\n"
-                            f"    - 초기자본: {args['capital']:,.0f}원\n"
-                            f"    - 보수적 왕복 비용: {args['roundtrip_cost']:.2%}\n"
+                            f"  {m.run.info.title}\n"
+                            f"    - 종목: {a.ticker}\n"
+                            f"    - 기간: {a.start} ~ {a.end}\n"
+                            f"    - 초기자본: {a.capital:,.0f}원\n"
+                            f"    - 테스트 일자: {a.test_days}일\n"
+                            f"{'='*60}\n"            
+                            f"  시스템 정보\n"
+                            f"    - Phase: {c.sys.phase}\n"
+                            f"    - Seed: {c.sys.seed}\n"
+                            f"    - 거래 시간: {c.sys.market_open_time} ~ {c.sys.market_close_time} ({c.sys.timezone})\n"
+                            f"    - 일일 거래 분(봉) 수: {c.sys.minutes_per_day}분/일\n"
+                            f"    - 룩백 윈도우 수: {c.sys.lookback_minutes}분(개)\n"
+                            f"    - 강제 종료 시간: {c.sys.force_close_minutes_before}분\n"
                             f"{'='*60}\n"            
                         ),
     ),
@@ -53,7 +49,6 @@ run = DictDot(
         title           = lambda d: _MF(f"[{d}] Walk-Forward 검증 실행 중..."),
     ),
 )
-
 
 store = DictDot(
     init_info           = lambda in_bdir, bdir: _MF(f"base_dir: [{in_bdir}], self._base_dir: [{bdir}]"),
@@ -79,4 +74,8 @@ loader = DictDot(
         pykrx_result    = lambda df: _MF(f"pykrx 라이브러리 분봉 생성 결과: 데이터프레임 사이즈 = [{df.size:,}]"),
     ),
     
+)
+
+wfv = DictDot(          # Walk-Forward Validator
+
 )
