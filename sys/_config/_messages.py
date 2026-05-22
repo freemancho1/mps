@@ -56,7 +56,7 @@ store = DictDot(
     fpath_not_found     = lambda fpath: _MF(f"{fpath} 파일이 존재하지 않습니다."),
     load_bars = DictDot(
         dates           = lambda s, e, m: _MF(f"불러올 대상 날짜: [{s} ~ {e}], Mask: [{m}]"),
-        size            = lambda df: _MF(f"불러온 데이터프레임 크기: [{df.size:,}]"),
+        size            = lambda df: _MF(f"불러온 데이터프레임 크기: [{df.shape}]"),
         return_size     = lambda l: _MF(f"리턴할 데이터 크기: [{len(l):,}]"),
     ),
 )
@@ -70,8 +70,8 @@ loader = DictDot(
         from_synthetic  = lambda: "pykrx 라이브러리를 이용해 데이터 합성",
         kis_not_implemented = "[ERROR] KIS REST API분봉 수집 함수는 KIS_APP_KEY 설정 후 구현 예정",
         pykrx_info      = lambda s, e, t: _MF(f"pykrx 데이터 생성 기간: {s} ~ {e}, 종목 코드: [{t}]"),
-        pykrx_error     = lambda df: _MF(f"pykrx 라이브러리가 데이터를 합성하지 못했습니다. 합성결과 데이터 사이즈 = {df.size:,}"),
-        pykrx_result    = lambda df: _MF(f"pykrx 라이브러리 분봉 생성 결과: 데이터프레임 사이즈 = [{df.size:,}]"),
+        pykrx_error     = lambda df: _MF(f"pykrx 라이브러리가 데이터를 합성하지 못했습니다. 합성결과 데이터 사이즈 = {df.shape}"),
+        pykrx_result    = lambda df: _MF(f"pykrx 라이브러리 분봉 생성 결과: 데이터프레임 사이즈 = [{df.shape}]"),
     ),
     
 )
@@ -92,5 +92,6 @@ hs = DictDot(           # HistoricalSimulator
     run_info            = lambda b: _MF(f"윈도우 정보: {b[0].timestamp.date()} ~ {b[-1].timestamp.date()}, size={len(b):,}"),
     lookback_under_err  = lambda bars, lb: f"입력된 데이터가 백테스트를 위한 최소 데이터({lb})보다 적습니다.(입력 데이터: {len(bars)}봉)",
     size_check          = lambda bars, buff: _MF(f"사이즈 비교: len(bars) = {len(bars)}, len(buffer) = {len(buff)}"),
-    
+    # TODO: 9 - 여기먼저 (featureExtractor)
+    extract_result      = lambda b, d, f: _MF(f"")   
 )

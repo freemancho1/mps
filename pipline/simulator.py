@@ -26,6 +26,7 @@ from mps.sys import cfg, msg, MPF_STYLE
 from mps.sys.core.types import Bar, Order
 from mps.pipline.evaluator import PerformanceReport, TradeRecord
 from mps.pipline.features.validator import BarValidator
+from mps.pipline.observability.latency import LatencyMonitor
 
 
 class HistoricalSimulator: 
@@ -39,6 +40,7 @@ class HistoricalSimulator:
         # print(msg.hs.init(self))
         
         self._validator = BarValidator()
+        self._latency = LatencyMonitor()
         
     def run(self, bars: list[Bar]) -> None:
         print(msg.hs.run_info(bars))
@@ -81,7 +83,7 @@ class HistoricalSimulator:
             buffer_list = list(buffer)
 
             # ── 4. 피처 추출 및 정규화 ───────────────────────
-            # TODO: 5 self._latency 처리 후 계속
+            # TODO: 5 self._latency, _extractor 처리 후 계속
 
         
         return
