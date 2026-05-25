@@ -39,6 +39,8 @@ def main():
         print(msg.run.data_load.result_error(load))
         return 
     
+    start_time = datetime.now()
+
     # ── 2단계: Walk-Forward 검증 ─────────────────────
     # 학습 60거래일 + 테스트 10거래일 슬라이딩 윈도우를 반복
     # 각 윈도우마다 독립 HistoricalSimulator를 생성하여, PerformanceReport 반환
@@ -50,6 +52,8 @@ def main():
     )
     reports = validator.run(bars)
     # TODO: 1 - WalkForwardValidator.run() 작업 후
+
+    print(msg.run.info.process_time(start_time, datetime.now()))
 
 def parse_args():
     p = argparse.ArgumentParser(description=msg.run.info.title)

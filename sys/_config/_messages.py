@@ -1,4 +1,5 @@
-import inspect 
+import inspect
+from time import process_time 
 from mps.sys.free import DictDot
 
 
@@ -39,6 +40,7 @@ run = DictDot(
                             f"    - 강제 종료 시간: {c.sys.force_close_minutes_before}분\n"
                             f"{'='*60}\n"            
                         ),
+        process_time    = lambda st, et: _MF(f"\n전체 테스트 시간: 시작[{st}]~종료[{et}], 총 처리 시간[{et-st}]"),
     ),
     data_load = DictDot(
         title           = lambda d: _MF(f"[{d}] 데이터 로드 중..."),  
@@ -92,6 +94,8 @@ hs = DictDot(           # HistoricalSimulator
     run_info            = lambda b: _MF(f"윈도우 정보: {b[0].timestamp.date()} ~ {b[-1].timestamp.date()}, size={len(b):,}"),
     lookback_under_err  = lambda bars, lb: f"입력된 데이터가 백테스트를 위한 최소 데이터({lb})보다 적습니다.(입력 데이터: {len(bars)}봉)",
     size_check          = lambda bars, buff: _MF(f"사이즈 비교: len(bars) = {len(bars)}, len(buffer) = {len(buff)}"),
-    # TODO: 9 - 여기먼저 (featureExtractor)
-    extract_result      = lambda b, d, f: _MF(f"")   
+    extract_result      = lambda b, d, f: _MF(f"원본 봉 갯 수: {len(b)}, 변경된 데이터프레임 사이즈: {d.shape}, ndarray shape: {f.shape}"),
+    normal = DictDot(   # Normalizer
+        size_err        = lambda ws, ib: f"롤백 윈도우({ws})보다 데이터가 부족합니다: 입력 봉수={len(ib)}",
+    ),
 )

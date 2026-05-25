@@ -14,6 +14,8 @@ from . import _constants as const
 class SysConfig:
     seed: int = 42 
     phase: int = 1
+
+    zero: float = const.ZERO
     
     timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo(const.CURR_TIMEZONE))
     date_format: str = const.DATE_FORMAT
@@ -30,6 +32,10 @@ class SysConfig:
     buffer_days = math.ceil(lookback_minutes / minutes_per_day) + 1
     force_close_minutes_before: int = const.FORCE_CLOSE_MINUTES_BEFORE
     force_refresh: bool = const.FORCE_REFRESH
+
+    rsi_oversold: float = const.RSI_OVERSOLD
+    rsi_overbought: float = const.RSI_OVERBOUGHT
+    rsi_closeover_base: float = const.RSI_CLOSEOVER_BASE
 
 
 @dataclass

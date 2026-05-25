@@ -77,6 +77,65 @@ class PatternInput:
     chart_image: Optional[np.ndarray] = None    # shape [H, W, C] ─ Phase-1에서는 사용 않함
 
 
+# ── 모델 출력 신호 타입 ─────────────────────────
+
+@dataclass 
+class NumericalSignal:
+    """ 
+    수치 트랙 → SignalAggregator로 전달되는 신호
+
+    direction: ThresholdModel(Phase-1) 또는 LSTM(Phase-2+)이 판정한 방향
+    confidence: 모델의 확신도로 0.0 ~ 1.0
+    feature_contrib: 어떤 피처가 이 신호를 만들었는지 (관측 가능성 원칙)
+        logs·signals.jsonl에 기록하여 사후 분석에 활용
+    latency_ms: 모델 추론에 걸린 시간 ─ LatencyGuard의 판단 근거
+    """
+    ticker: str 
+    timestamp: datetime 
+    direction: Direction
+    confidence: float 
+    feature_contrib: dict   # { "rsi_14": 28.3, "macd_diff": 0.12...}
+    latency_ms: float 
+
+
+@dataclass 
+class PatternSignal:
+    """
+    패턴 트랙 → SignalAggregator로 전달되는 신호
+
+    pattern_name: 감지된 패턴 이름 (예: "hammer", "morning_str"...)
+    source: 신호 생성 방식 ─ "RULE"(Phase-1), "CNN"(Phase-2), "VISION"(Phase-3)
+    """
+    ticker: str 
+    timestamp: datetime 
+    dircetion: Direction
+    confidence: float 
+    pattern_name: str 
+    source: Literal["RULE", "CNN", "VISION"]
+    latency_ms: float 
+
+
+@dataclass 
+class TradeSignal:
+    """ 
+    SignalAggregator → RiskManager로 전달되는 합의 신호
+
+    두 트랙이 같은 방향에 동의했고, 합산 지연시간이 임계값 이하이고,
+    combined_score >= 0.55 일 때만 이 객체가 생성됨.
+    → 이 객체는 사거나 파는 경우만 발생하며, 가지고 있는 경우는 없음.
+
+    combined_score 계산식:
+      - 두 트랙 가중치 합산: num_conf * 0.5(가중치) + pat_conf * 0.5(가중치)
+    """
+    ticker: str 
+    timestamp: datetime 
+    direction: BSDirection
+    combined_score: float 
+    num_track_conf: float 
+    pat_track_conf: float 
+    total_latency_ms: float 
+
+
 @dataclass 
 class Order:
     """ 

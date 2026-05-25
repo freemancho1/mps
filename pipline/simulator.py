@@ -23,9 +23,11 @@ from typing import Optional
 from collections import deque 
 
 from mps.sys import cfg, msg, MPF_STYLE
-from mps.sys.core.types import Bar, Order
+from mps.sys.core.types import Bar, Order, NumericalInput, PatternInput
 from mps.pipline.evaluator import PerformanceReport, TradeRecord
 from mps.pipline.features.validator import BarValidator
+from mps.pipline.features.normalizer import NumericalNormalizer, PatternNormalizer
+from mps.pipline.models.numerical.extractor import FeatureExtractor
 from mps.pipline.observability.latency import LatencyMonitor
 
 
@@ -40,6 +42,9 @@ class HistoricalSimulator:
         # print(msg.hs.init(self))
         
         self._validator = BarValidator()
+        self._extractor = FeatureExtractor()
+        self._numeric_normalizer = NumericalNormalizer()
+        self._pattern_normalizer = PatternNormalizer()
         self._latency = LatencyMonitor()
         
     def run(self, bars: list[Bar]) -> None:
@@ -83,7 +88,10 @@ class HistoricalSimulator:
             buffer_list = list(buffer)
 
             # ── 4. 피처 추출 및 정규화 ───────────────────────
-            # TODO: 5 self._latency, _extractor 처리 후 계속
+            with self._latency.measure("feature"):
+                raw = self._extractor.extract(buffer_list)
+                numeric_input = self._numeric_normalizer.transform(buffer_list, raw)
+                pattern_input = self._pattern_normalizer.transform(buffer_list)
 
         
         return

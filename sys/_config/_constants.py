@@ -12,9 +12,14 @@ COMMISSION_RATE             = 0.00015       # 증권사 수수료(편도 0.015%)
 TAX_RATE                    = 0.0018        # 코스피 매도 세율 (0.18%)
 SLIPPAGE_RATE               = 0.001         # 슬리피지 (보수적으로 0.1%)
 
+RSI_OVERSOLD                = 35.0          # RSI 과매도 임계값 (이 이하 → BUY 후보)
+RSI_OVERBOUGHT              = 65.0          # RSI 과매수 임계값 (이 이상 → SELL 후보)
+RSI_CLOSEOVER_BASE          = 0.3           # 크로스오버 자체의 베이스 신뢰도
+
 # ── SYSTEM ──────────────────────────────
 # common
 SEED                        = 42
+ZERO                        = 1e-8
 
 # directory
 DATA_DIR                    = "data"
