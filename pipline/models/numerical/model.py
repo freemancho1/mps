@@ -25,7 +25,7 @@ import time
 import numpy as np 
 
 from mps.pipline.models.numerical.extractor import FeatureExtractor
-from mps.sys.core.types import NumericalInput, NumericalSignal
+from mps.sys.core.types import NumericalInput, NumericalSignal, Direction
 from mps.sys import cfg
 
 # FeatureExtractor.FEATURE_NAMES 순서에서 각 피처의 열 인덱스를 미리 매핑해
@@ -49,7 +49,7 @@ class ThresholdModel:
         self._rsi_high = rsi_overbought 
         self._rsi_base = rsi_closeover_base
 
-    def predict(self, inp: NumericalInput) -> tuple[str, float, dict]:
+    def predict(self, inp: NumericalInput) -> tuple[Direction, float, dict]:
         """ 
         방향, 신뢰도, 피처 기여도 튜플 반환
 
@@ -87,3 +87,21 @@ class ThresholdModel:
             return "SELL", round(conf, 4), contrib 
         
         return "HOLD", 0.0, contrib 
+    
+    def run(self, inp: NumericalInput) -> NumericalSignal:
+        """ 
+        추론 시간을 측정하여 NumericalSignal을 생성하고 반환
+        - latency_ms는 LatencyGuard에서 총 지연시간 계산에 사용됨
+        """
+        curr_time = time.perf_counter()
+        direction, confidence, contrib = self.predict(inp)
+        latency_ms = (time.perf_counter() - curr_time) * 1000
+        
+        return NumericalSignal(
+            ticker=inp.ticker,
+            timestamp=inp.timestamp,
+            direction=direction,
+            confidence=confidence,
+            feature_contrib=contrib,
+            latency_ms=latency_ms
+        )

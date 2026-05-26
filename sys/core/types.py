@@ -108,7 +108,7 @@ class PatternSignal:
     """
     ticker: str 
     timestamp: datetime 
-    dircetion: Direction
+    direction: Direction
     confidence: float 
     pattern_name: str 
     source: Literal["RULE", "CNN", "VISION"]

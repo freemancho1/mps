@@ -28,6 +28,8 @@ from mps.pipline.evaluator import PerformanceReport, TradeRecord
 from mps.pipline.features.validator import BarValidator
 from mps.pipline.features.normalizer import NumericalNormalizer, PatternNormalizer
 from mps.pipline.models.numerical.extractor import FeatureExtractor
+from mps.pipline.models.numerical.model import ThresholdModel
+from mps.pipline.models.pattern.rules import RuleBasedPatternEngine
 from mps.pipline.observability.latency import LatencyMonitor
 
 
@@ -45,6 +47,8 @@ class HistoricalSimulator:
         self._extractor = FeatureExtractor()
         self._numeric_normalizer = NumericalNormalizer()
         self._pattern_normalizer = PatternNormalizer()
+        self._numeric_model = ThresholdModel()
+        self._pattern_engine = RuleBasedPatternEngine()
         self._latency = LatencyMonitor()
         
     def run(self, bars: list[Bar]) -> None:
@@ -92,6 +96,12 @@ class HistoricalSimulator:
                 raw = self._extractor.extract(buffer_list)
                 numeric_input = self._numeric_normalizer.transform(buffer_list, raw)
                 pattern_input = self._pattern_normalizer.transform(buffer_list)
+                
+            # ── 5.1. 수치·패턴 트랙 신호 생성 ────────────────────
+            with self._latency.measure("numerical"):
+                numeric_signal = self._numeric_model.run(numeric_input)
+            with self._latency.measure("pattern"):
+                pattern_signal = self._pattern_engine.run(pattern_input, buffer_list)
 
         
         return
