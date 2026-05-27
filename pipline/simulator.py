@@ -25,12 +25,11 @@ from collections import deque
 from mps.sys import cfg, msg, MPF_STYLE
 from mps.sys.core.types import Bar, Order, NumericalInput, PatternInput
 from mps.pipline.evaluator import PerformanceReport, TradeRecord
-from mps.pipline.features.validator import BarValidator
-from mps.pipline.features.normalizer import NumericalNormalizer, PatternNormalizer
-from mps.pipline.models.numerical.extractor import FeatureExtractor
-from mps.pipline.models.numerical.model import ThresholdModel
-from mps.pipline.models.pattern.rules import RuleBasedPatternEngine
-from mps.pipline.observability.latency import LatencyMonitor
+from mps.pipline.features import BarValidator, NumericalNormalizer, PatternNormalizer
+from mps.pipline.models.numeric import FeatureExtractor, ThresholdModel
+from mps.pipline.models.pattern import RuleBasedPatternEngine
+from mps.pipline.signal import SignalAggregator, LatencyGuard, SignalFilter
+from mps.pipline.observability import LatencyMonitor, SignalLogger, OrderLogger
 
 
 class HistoricalSimulator: 
@@ -49,6 +48,11 @@ class HistoricalSimulator:
         self._pattern_normalizer = PatternNormalizer()
         self._numeric_model = ThresholdModel()
         self._pattern_engine = RuleBasedPatternEngine()
+        self._aggregator = SignalAggregator()
+        self._latency_guard = LatencyGuard()
+        self._signal_filter = SignalFilter()
+        self._signal_logger = SignalLogger()
+        self._order_logger = OrderLogger()
         self._latency = LatencyMonitor()
         
     def run(self, bars: list[Bar]) -> None:
@@ -97,11 +101,27 @@ class HistoricalSimulator:
                 numeric_input = self._numeric_normalizer.transform(buffer_list, raw)
                 pattern_input = self._pattern_normalizer.transform(buffer_list)
                 
-            # ── 5.1. 수치·패턴 트랙 신호 생성 ────────────────────
+            # ── 5. 수치·패턴 트랙 신호 생성 ────────────────────
             with self._latency.measure("numerical"):
                 numeric_signal = self._numeric_model.run(numeric_input)
             with self._latency.measure("pattern"):
                 pattern_signal = self._pattern_engine.run(pattern_input, buffer_list)
+                
+            # ── 6. 신호 합의 + 가드 적용 ─────────────────────
+            trade_signal = self._aggregator.combine(numeric_signal, pattern_signal)
+            trade_signal = self._latency_guard.filter(trade_signal)
+            trade_signal = self._signal_filter.filter(trade_signal)
+            
+            # 신호가 없으면 다음 봉으로 이동
+            if trade_signal is None: 
+                continue 
+            
+            # 최종 통과한 신호는 기록 (logs/signals.jsonl)
+            self._signal_logger.log(trade_signal)
+            
+            # ── 7. 수량 계산 ───────────────────────────
+            # PositionSizer: min(현재 현금, 초기 자본 * 10%) // 현재가
+            
 
         
         return

@@ -36,6 +36,16 @@ class SysConfig:
     rsi_oversold: float = const.RSI_OVERSOLD
     rsi_overbought: float = const.RSI_OVERBOUGHT
     rsi_closeover_base: float = const.RSI_CLOSEOVER_BASE
+    
+    # 결합 정보
+    numeric_combined_weight: float = const.NUMERIC_COMBINED_WEIGHT
+    pattern_combined_weight: float = const.PATTERN_COMBINED_WEIGHT
+    
+    max_latency_ms: float = const.MAX_LATENCY_MS
+    min_combined_score: float = const.MIN_COMBINED_SCORE
+    
+    # 거래 건당 최대 거래 금액
+    max_position_pct: float = const.MAX_POSITION_PCT    # 초기 자본의 10%
 
 
 @dataclass
@@ -81,12 +91,21 @@ class KisApiConfig:
 @dataclass
 class LogConfig:
     base_dir: Path = field(repr=False)  # 외부 주입
+    
+    signal_str: str = "signal"
+    signal_log_fname: str = field(init=False)
+    order_str: str = "order"
+    order_log_fname: str = field(init=False)
 
     @property
     def dir(self) -> Path:
         d = self.base_dir / const.LOG_DIR
         d.mkdir(parents=True, exist_ok=True)
         return d
+    
+    def __post_init__(self):
+        self.signal_log_fname = f"{self.signal_str}s.jsonl"
+        self.order_log_fname = f"{self.order_str}s.jsonl"
 
 
 @dataclass(frozen=True)

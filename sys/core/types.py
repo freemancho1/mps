@@ -155,3 +155,35 @@ class Order:
     expire_at: datetime             # 이 시각 이후 봉에서 TIMEOUT 또는 FORCE_CLOSE 처리
     price: Optional[float] = None   # 진입가 (submit_order 이후 채워짐)
     order_id: Optional[str] = None  # 고유 주문 id
+    
+
+@dataclass 
+class Reject:
+    """ 
+    RiskManager가 주문을 거부할 때 반환하는 이유 객체
+    
+    현재 Phase-1에서 Reject를 발생시키는 명시적 규칙이 없지만,
+    (수량=0 이면 주문 자체를 건너뜀)
+    향후 추가 리스크 규칙(일일 손실 한도 초과 등) 구현 시 사용.
+    """
+    reason: str 
+    signal: TradeSignal
+    
+
+@dataclass 
+class OrderResult:
+    """ 
+    PaperTrader(또는 KISOrderClient)가 주문 제출 후 반환하는 체결 결과.
+    
+    Phase-1(PaperTrader): 항상 FILLED ─ 부분 체결·거부 미 시뮬레이션.
+                          → 실거래 전환 시 PARTIAL, CANCELLED 케이스도 처리해야 함.
+    
+    slippage: filled_price - 주문 당시 시장가 (BUY는 양수, SELL은 음수)
+              → CostModel의 slippage_rate와 벌개로 기록 (실제 슬리피지 모니터링)
+    """
+    order_id: str 
+    status: OrderStatus
+    filled_price: float         # 실제 체결가
+    filled_quantity: int 
+    timestamp: datetime 
+    slippage: float             # 기대가 대비 체결가 차이 (양수 = 불리하게 체결)
