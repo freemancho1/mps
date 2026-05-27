@@ -149,6 +149,18 @@ class CostConfig:
 
 
 @dataclass 
+class TripleBarrierConfig:
+    """ 
+    Triple Barrier 라벨링 임계값 설정
+
+    백테스트 기준과 실거래 기준이 동일해야 함.
+    """
+    take_profit: float = const.TAKE_PROFIT
+    stop_loss: float = const.STOP_LOSS
+    time_horizon: int = const.TIME_HORIZON
+
+
+@dataclass 
 class _Config:
     # root_dir: ~/projects/mps
     root_dir: Path = field(default_factory=lambda: Path(__file__).parent.parent.parent)
@@ -157,6 +169,7 @@ class _Config:
     log: LogConfig = field(init=False)
     cost: CostConfig = field(default_factory=CostConfig)
     kis: KisApiConfig = field(default_factory=KisApiConfig)
+    triple_barrier: TripleBarrierConfig = field(default_factory=TripleBarrierConfig)
 
     def __post_init__(self):
         self._data_dir = self.root_dir / const.DATA_DIR

@@ -28,5 +28,51 @@ class TripleBarrierGuard:
       - 진입 이후 세 가지 장벽(barrier) 중 하나를 먼저 터치하면 청산:
         · 상단 장벽(+0.5%): 익절
         · 하단 장벽(-0.3%): 손절
-        
+        · 시간 장벽(60분): 시간 만료 청산
+      - 비대칭 설정(TP=0.5% > SL=0.3%)의 이유:
+        손실이 이익보다 더 빨리 차단 → 승률이 낮아도 수익 기대값 유지 가능
+      - 만료 시각
+        min(진입+60분, 당일 강제청산 시각=15:15)
+        → 60분이 지나도 15:15 이전이면 15:15에 강제 청산
+    """
+    def __init__(self) -> None:
+        self._cfg = cfg.triple_barrier
+    
+    def build_order(
+        self,
+        signal: TradeSignal,
+        entry_price: float, 
+        quantity: int, 
+        entry_time: datetime,
+    ) -> Order:
+        """ TradeSignal → Order 변환. TP/SL 절대 가격과 만료 시각을 계산해 Order에 포함."""
+        if signal.direction == "BUY":
+            # BUY: 상단 +0.5% = 익절, 하단 -0.3% = 손절
+            take_profit = entry_price * (1 + self._cfg.take_profit)
+            stop_loss = entry_price * (1 - self._cfg.stop_loss)
+        else:
+            # SELL(공매도): 하단 -0.5% = 익절, 상단 +0.3% = 손절
+            take_profit = entry_price * (1 - self._cfg.take_profit)
+            stop_loss = entry_price * (1 + self._cfg.stop_loss)
+
+        # 만료 시각: 진입 후 60분 vs 당일 강제청산 중 더 이른 시각
+        expire_at = min(
+            entry_time + timedelta(minutes=self._cfg.time_horizon),
+            force_close_dt(entry_time.date(), cfg.sys.force_close_minutes_before)
+        )
+
+        return Order(
+            ticker=signal.ticker,
+            direction=signal.direction,
+            quantity=quantity,
+            order_type="MARKET",
+            stop_loss=round(stop_loss, 0),      # 원은 정수로 처리
+            take_profit=round(take_profit, 0),  # 원화는 정수로 처리
+            expire_at=expire_at
+        )
+    
+
+class IntradayCloseoutGuard:
+    """ 
+    장 마감 강제청산 
     """

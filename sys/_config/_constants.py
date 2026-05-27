@@ -27,6 +27,11 @@ MIN_COMBINED_SCORE          = 0.55          # 최소 임계값
 # 투자 건당 최대 금액 비율
 MAX_POSITION_PCT            = 0.1           # 10%
 
+# Triple Barrier 라벨링 임계값
+TAKE_PROFIT                 = 0.005         # +0.5%
+STOP_LOSS                   = 0.003         # -0.3%
+TIME_HORIZON                = 60            # 60분
+
 # ── SYSTEM ──────────────────────────────
 # common
 SEED                        = 42
