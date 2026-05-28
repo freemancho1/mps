@@ -49,6 +49,7 @@ run = DictDot(
     ),
     wf = DictDot(       # Walk-Forward 검증
         title           = lambda d: _MF(f"[{d}] Walk-Forward 검증 실행 중..."),
+        results         = lambda r: _MF(f"Walk-Forward 결과 = ({len(r)}개 구간):"),
     ),
 )
 

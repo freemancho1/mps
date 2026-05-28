@@ -50,14 +50,19 @@ class NumericalInput:
     """ 
     수치분석 트랙 입력 데이터 타입
     
-    - NumerialNormalizer가 feature_matrix에 롤링 Z-score를 적용한 결과임.
-    - window shape: [lookback_minutes, num_features(14)]
-    - 각 값은 "지금 이 지표 값이 최근 lookback 기간 대비 몇 표준편차인가?"를 나타냄.
-      → 절대값이 아닌 상대적 비정상도를 모델에 입력하므로 종목·시기에 무관하게 일반화.
+    - window: NumerialNormalizer가 롤링 Z-score를 적용한 결과 (결정7).
+      → "지금 이 지표 값이 최근 lookback 기간 대비 몇 표준편차인가?"
+      → 학습 기반 수치 모델(LSTM/Transformer, Phase-2+)의 입력.
+    - raw_window: 정규화 이전 원본 지표값 (RSI 0~100, MACD 히스토그램 등).
+      → Phase-1 ThresholdModel처럼 '절대 임계값/부호'가 의미를 갖는 룰 모델이 사용.
+      → Z-score는 (x-μ)/σ 변환이라 RSI 35/65 임계값과 MACD 골든/데드크로스
+         부호 판정을 모두 왜곡하므로, 룰 판정에는 raw_window를 써야 한다.
+    - window/raw_window shape: [lookback_minutes, num_features(14)] ─ dtype=float32
     """
     ticker: str                 
     timestamp: datetime
-    window: np.ndarray          # shape [N, num_features] ─ dtype=float32
+    window: np.ndarray          # shape [N, num_features] ─ Z-score 정규화 (학습 모델용)
+    raw_window: np.ndarray      # shape [N, num_features] ─ 정규화 이전 원본 (룰 모델용)
     window_size: int            # 120~240 (cfg.sys.lookback_minutes=120)
     
 

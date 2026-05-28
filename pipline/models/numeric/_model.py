@@ -24,7 +24,7 @@ from __future__ import annotations
 import time 
 import numpy as np 
 
-from mps.pipline.models.numerical.extractor import FeatureExtractor
+from mps.pipline.models.numeric import FeatureExtractor
 from mps.sys.core.types import NumericalInput, NumericalSignal, Direction
 from mps.sys import cfg
 
@@ -42,7 +42,7 @@ class ThresholdModel:
         rsi_oversold: float = cfg.sys.rsi_oversold,     
         # RSI 과매수 임계값 (이 이상 → SELL 후보)
         rsi_overbought: float = cfg.sys.rsi_overbought,
-        # RSI 크로스오버 베이스 임계값
+        # RSI 크로스오버 베이스 임계값# TODO: 1 - WalkForwardValidator.run() 작업 후
         rsi_closeover_base: float = cfg.sys.rsi_closeover_base,
     ) -> None:
         self._rsi_low = rsi_oversold
@@ -53,15 +53,18 @@ class ThresholdModel:
         """ 
         방향, 신뢰도, 피처 기여도 튜플 반환
 
-        inp.window는 Z-score 정규화된 값이므로 절대적인 RSI 35 기준이 아닌 상대적 위치
-        (NumericalNormalizer가 정규화했으므로 실제 RSI 원본 값이 아님)
+        [중요] 룰 판정은 inp.raw_window(원본 지표값)를 사용한다.
+          inp.window는 Z-score 정규화 값이라 RSI 35/65 임계값과
+          MACD 히스토그램의 부호(골든/데드크로스)가 모두 왜곡되므로,
+          절대 기준이 의미를 갖는 ThresholdModel에는 부적합하다.
+          (z-score window는 Phase-2 학습 모델 입력용으로 보존)
         """
-        window = inp.window                             # shape = [N, 14] ─ Z-score 정규화 피처
-        last = window[-1]                               # 가장 최근 봉
-        prev = window[-2] if len(window) >=2 else last  # 가장 최근 봉 직전 봉
+        raw = inp.raw_window                        # shape = [N, 14] ─ 정규화 이전 원본 지표
+        last = raw[-1]                              # 가장 최근 봉
+        prev = raw[-2] if len(raw) >= 2 else last   # 가장 최근 봉 직전 봉
 
-        # 주요 피처 추출
-        rsi = float(last(_IDX["rsi_14"]))               
+        # 주요 피처 추출 (원본 값 ─ RSI는 0~100, macd_diff는 히스토그램 실수값)
+        rsi = float(last[_IDX["rsi_14"]])               
         macd_diff_now = float(last[_IDX["macd_diff"]])  # 현재 MACD 히스토그램
         macd_diff_prev = float(prev[_IDX["macd_diff"]]) # 직전 MACD 히스토그램
         bb_pband = float(last[_IDX["bb_pband"]])        # 볼린저밴드 위치

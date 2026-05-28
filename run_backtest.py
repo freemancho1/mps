@@ -51,7 +51,9 @@ def main():
         capital=args.capital
     )
     reports = validator.run(bars)
-    # TODO: 1 - WalkForwardValidator.run() 작업 후
+    print(msg.run.wf.results(reports))
+    for idx, report in enumerate(reports, 1):
+        print(f"  [{idx:02d}] {report}")
 
     print(msg.run.info.process_time(start_time, datetime.now()))
 

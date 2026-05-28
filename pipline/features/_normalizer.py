@@ -48,13 +48,14 @@ class NumericalNormalizer:
         if len(bars) < self._window_size:
             raise ValueError(msg.hs.normal.size_err(self._window_size, bars))
         
-        window = feature_matrix[-self._window_size:]    # 최근 lookback 행 추출
+        window = feature_matrix[-self._window_size:]    # 최근 lookback 행 추출 (원본)
         mu = window.mean(axis=0)
         std = window.std(axis=0) + cfg.sys.zero
         normalized = (window - mu) / std
 
         return NumericalInput(
             window=normalized.astype(np.float32),
+            raw_window=window.astype(np.float32),   # 정규화 이전 원본 (룰 모델 임계값 판정용)
             window_size=self._window_size,
             ticker=bars[-1].ticker,
             timestamp=bars[-1].timestamp,

@@ -62,4 +62,5 @@ LOAD_PYKRX                  = "PYKRX"
 # ── MARKET INFO ────────────────────────────
 MARKET_OPEN_TIME            = "09:00"
 MARKET_CLOSE_TIME           = "15:30"
+MARKET_DAYS_PER_YEAR        = 252 
 MINUTES_PER_DAY             = 60 * 6 + 30   # 09:00 ~ 15:30 = 390분

@@ -25,6 +25,7 @@ class SysConfig:
     _close = const.MARKET_CLOSE_TIME
     market_open_time: time = time(int(_open[:2]), int(_open[3:]))
     market_close_time: time = time(int(_close[:2]), int(_close[3:]))
+    market_days_per_year: int = const.MARKET_DAYS_PER_YEAR
     minutes_per_day: int = const.MINUTES_PER_DAY
     
     # 룩백 윈도우: 신호 생성 전 반드시 확보해야 할 과거 봉 수

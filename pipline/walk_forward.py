@@ -72,7 +72,7 @@ class WalkForwardValidator:
                 # 모든 시뮬레이터에 입력받은 동일한 초기 자본금으로 실행함
                 simulator = HistoricalSimulator(capital=self._capital)
                 report = simulator.run(window_bars)
-                # TODO: 2. HistoricalSimulator.run() 작업 후
+                reports.append(report)
             except ValueError as valerr:
                 print(msg.wfv.err_win_bars(valerr))
                 continue

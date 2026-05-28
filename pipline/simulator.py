@@ -21,14 +21,18 @@ from __future__ import annotations
 
 from typing import Optional 
 from collections import deque 
+from dataclasses import replace
 
-from mps.sys import cfg, msg, MPF_STYLE
-from mps.sys.core.types import Bar, Order, NumericalInput, PatternInput
-from mps.pipline.evaluator import PerformanceReport, TradeRecord
+from mps.sys import cfg, msg
+from mps.sys.core.types import Bar, Order
+from mps.pipline.evaluator import PerformanceEvaluator, PerformanceReport, TradeRecord
 from mps.pipline.features import BarValidator, NumericalNormalizer, PatternNormalizer
 from mps.pipline.models.numeric import FeatureExtractor, ThresholdModel
 from mps.pipline.models.pattern import RuleBasedPatternEngine
 from mps.pipline.signal import SignalAggregator, LatencyGuard, SignalFilter
+from mps.pipline.observability.risk import CostModel, PositionSizer
+from mps.pipline.observability.risk import TripleBarrierGuard, StopLossTakeProfitGuard
+from mps.pipline.execution import PaperTrader, OrderStateTracker
 from mps.pipline.observability import LatencyMonitor, SignalLogger, OrderLogger
 
 
@@ -51,11 +55,17 @@ class HistoricalSimulator:
         self._aggregator = SignalAggregator()
         self._latency_guard = LatencyGuard()
         self._signal_filter = SignalFilter()
+        self._cost_model = CostModel()
+        self._sizer = PositionSizer(capital=self._capital)
+        self._barrier_guard = TripleBarrierGuard()
+        self._sltp_guard = StopLossTakeProfitGuard()
+        self._trader = PaperTrader()
+        self._tracker = OrderStateTracker()
         self._signal_logger = SignalLogger()
         self._order_logger = OrderLogger()
         self._latency = LatencyMonitor()
         
-    def run(self, bars: list[Bar]) -> None:
+    def run(self, bars: list[Bar]) -> PerformanceReport:
         print(msg.hs.run_info(bars))
         # is_complete=False 봉이 섞여 있으면 look-ahead bias 발생 위험
         bars = self._validator.filter(bars)
@@ -78,10 +88,57 @@ class HistoricalSimulator:
             buffer.append(bar)
 
             # ── 1. 현재 보유중인 포지션이 있으면 청산 체크 ───────────
-            # open_order가 있으면 현재 봉 종가로 TP·SL·만료 조건 확인
+            # open_order가 있으면 현재 봉의 고가/저가로 TP·SL·만료 조건 확인
             if open_order is not None:
-                # TODO: 4 여기 작성해야 함
-                pass 
+                action = self._sltp_guard.check(
+                    open_order, bar.high, bar.low, bar.timestamp
+                )
+                
+                if action != "HOLD": 
+                    # 청산 기준가:
+                    #  - 장벽 도달(TAKE_PROFIT/STOP_LOSS) → 해당 장벽 가격에서 체결 가정
+                    #  - 시간/강제 청산(TIMEOUT/FORCE_CLOSE) → 시장가(현재 봉 종가)
+                    exit_ref_price = self._exit_reference_price(open_order, action, bar)
+                    # 청산은 진입의 '반대 방향' 주문 → PaperTrader 슬리피지도 반대로 적용
+                    #  (롱 청산=매도는 더 싸게, 숏 청산=매수는 더 비싸게 체결되어야 보수적)
+                    exit_side = "SELL" if open_order.direction == "BUY" else "BUY"
+                    exit_order = replace(open_order, direction=exit_side)
+                    result = self._trader.submit_order(exit_order, exit_ref_price)
+                    
+                    # order.price는 진입 시 체결가로 채워짐 (Optional 타입 좁힘)
+                    assert open_order.price is not None                     
+                    
+                    # 현금성 수수료 (슬리피지는 체결가에 이미 반영됨 ─ 이중계상 없음)
+                    sell_fee = self._cost_model.sell_cost(result.filled_price, result.filled_quantity)
+                    buy_fee = self._cost_model.buy_cost(open_order.price, open_order.quantity)
+                    roundtrip_fee = buy_fee + sell_fee
+                    self._order_logger.log(exit_order, result)
+                    
+                    # 손익 계산: 진입 체결가 vs 청산 체결가 차이 * 수량
+                    if open_order.direction == "BUY":
+                        # BUY 진입 → 청산가가 높을수록 이익
+                        pnl = (result.filled_price - open_order.price) * result.filled_quantity
+                    else:
+                        # SELL 진입 → 청산가가 낮을수록 이익 (공매도)
+                        pnl = (open_order.price - result.filled_price) * result.filled_quantity
+                        
+                    # 현금 복원: 진입에 묶인 금액 + 손익 - 청산 수수료
+                    #  (진입 시 buy_fee는 이미 차감됐고, 진입가/손익이 모두 체결가 기준이라 정합)
+                    cash += open_order.price * open_order.quantity + pnl - sell_fee
+                    
+                    # 거래 기록 생성 (진입 + 청산 쌍, 비용은 왕복 수수료)
+                    trades.append(TradeRecord(
+                        ticker=open_order.ticker,
+                        direction=open_order.direction,
+                        entry_price=open_order.price,
+                        exit_price=result.filled_price,
+                        quantity=open_order.quantity,
+                        entry_time=open_order.order_id,     # 진입 시 order_id ⇒ 진입 시각 문자열
+                        exit_time=bar.timestamp,
+                        exit_reason=action,
+                        cost=roundtrip_fee,
+                    ))
+                    open_order = None                       # 포지션 해제
 
             # ── 2. 룩백 미달 구간은 신호 생성 생략 ───────────────
             # buffer에 lookback 봉 이상 쌓이기 전까지는 지표 계산이 의미 없음
@@ -121,8 +178,45 @@ class HistoricalSimulator:
             
             # ── 7. 수량 계산 ───────────────────────────
             # PositionSizer: min(현재 현금, 초기 자본 * 10%) // 현재가
+            quantity = self._sizer.calc_quantity(bar.close, cash)
+            if quantity <= 0:       # 현금 부족
+                continue            # 주문 건너뜀
             
+            # ── 8. 주문 생성 및 체결 ───────────────────────
+            # TripleBarrierGuard: TP/SL 가격 + 만료 시간 계산 → Order 객체 생성
+            order = self._barrier_guard.build_order(trade_signal, bar.close, quantity, bar.timestamp)
+            # order_id: "{ticker}_{HHMMSS}" 형식으로 진입 시각 추적 가능
+            order.order_id = f"{bar.ticker}_{bar.timestamp.strftime('%H%M%S')}"
+            
+            # PaperTrader: 시장가 즉시 체결 (슬리피지 포함)
+            result = self._trader.submit_order(order, bar.close)
+            # 진입가 = 실제 체결가(슬리피지 포함)로 기록
+            #  → 청산 손익·현금 원장·평가기 수익률이 모두 동일 기준(체결가)을 쓰도록 정합
+            order.price = result.filled_price
+            # 현금성 수수료 (슬리피지는 체결가에 이미 반영 ─ 이중계상 없음)
+            buy_fee = self._cost_model.buy_cost(result.filled_price, quantity)
+            # 현금 차감: 체결 금액 + 매수 수수료
+            cash -= result.filled_price * quantity + buy_fee
+            self._order_logger.log(order, result)
+            open_order = order  # 포지션 보유 시작
 
+        # ── 성과 평가 ───────────────────────────────
+        evaluator = PerformanceEvaluator()
+        report = evaluator.evaluate(trades, self._capital)
         
-        return
-        
+        return report
+
+    @staticmethod
+    def _exit_reference_price(order: Order, action: str, bar: Bar) -> float:
+        """ 
+        청산 액션별 기준 체결가 결정.
+          - TAKE_PROFIT → 익절 장벽 가격
+          - STOP_LOSS   → 손절 장벽 가격
+          - TIMEOUT / FORCE_CLOSE → 시장가(현재 봉 종가)
+        (실제 체결가는 PaperTrader가 이 기준가에 슬리피지를 반영해 산출)
+        """
+        if action == "TAKE_PROFIT":
+            return order.take_profit
+        if action == "STOP_LOSS":
+            return order.stop_loss
+        return bar.close
