@@ -11,10 +11,19 @@
 
 # Usage:
 
+* 먼저 모델 학습
 ```command
 $ cd ~/projects/mps
-$ python run_backtest.py [--ticker 005930] [--start 20250101] [--end 20251231]
+$ python run/train_models.py [--ticker 005930] [--start 20250101] [--end 20251231]
 ```
+
+* 학습 완료된 모델을 가지고 매매
+```command
+$ cd ~/projects/mps
+$ python run/backtest.py [--ticker 005930] [--start 20250101] [--end 20251231]
+```
+
+<br/>
 
 # Directories:
 
