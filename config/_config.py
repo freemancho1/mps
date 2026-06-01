@@ -5,7 +5,9 @@ import math
 from pathlib import Path 
 from datetime import time 
 from zoneinfo import ZoneInfo 
-from dataclasses import dataclass, field, asdict 
+from dataclasses import dataclass, field, asdict
+
+from mps.core.types import Direction 
 
 
 @dataclass 
@@ -18,6 +20,8 @@ class _RunConfig:
     
     # Model Training Config
     torch_device: str           = "gpu"
+
+    no_signal: tuple[Direction, float, dict] = ("HOLD", 0.0, {})
 
     # 데이터 읽어오는 방식
     force_data_refresh: bool    = False                 # 강제로 데이터 읽어오기: 읽어오지 않음(Fasle)

@@ -28,7 +28,11 @@ import torch.nn as nn
 from pathlib import Path 
 from typing import Optional
 
-from mps.config import cfg
+from mps.config import cfg, msg
+from mps.core.types import Direction
+from mps.core.types import NumericInput
+from mps.pp.features.labeler import IDX_TO_LABEL, LABEL_TO_IDX
+
 
 class LSTMNet(nn.Module):
     """ 
@@ -72,6 +76,61 @@ class LSTMModel:
     def __init__(
         self,
         weights_path: Optional[Path] = None, 
-        device: str = cfg.run.torch_device,
+        device: str = cfg.run.torch_device,     # gpu
+        model_arch: dict = cfg.lstm.to_dict(),
+        attribute: bool = True,
+    ) -> None:
+        self._device = torch.device(device)
+        self._model = LSTMNet(**model_arch).to(self._device)
+        self._attribute = attribute
+        self._trained = False 
+
+        if weights_path is not None and Path(weights_path).exists():
+            ckpt = torch.load(weights_path, map_location=self._device)
+            state = ckpt["state_dict"] if "state_dict" in ckpt else ckpt 
+            self._model.load_state_dict(state)
+            self._trained = True 
         
-    )
+        self._model.eval()
+
+    @property 
+    def model(self) -> LSTMNet:
+        return self._model
+    
+    @property 
+    def is_trained(self) -> bool:
+        return self._trained
+    
+    def predict(self, inp: NumericInput) -> tuple[Direction, float, dict]:
+        x = torch.from_numpy(np.ascontiguousarray(inp.window)).float()
+        x = x.unsqueeze(0).to(self._device)     # [1, N, 14]
+
+        # 1차: no_grad 빠른 추론으로 방향·신뢰도 결정
+        with torch.no_grad():
+            probs = torch.softmax(self._model(x), dim=-1)[0]
+            cls = int(torch.argmax(probs).item())
+            conf = float(probs[cls].item())
+
+        direction: Direction = IDX_TO_LABEL[cls]
+        if direction == "HOLD":
+            return cfg.run.no_signal    # "HOLD", 0.0, {} → 신호 미발생
+        
+        # 2차: 실제 신호(BUY·SELL)가 발생한 경우에만 어트리뷰션 계산
+        #      → 매 봉이 아니라 신호 봉에서만 backward 1회 ⇒ 백테스트 속도 확보
+        contrib: dict = {}
+        if self._attribute:
+            x.requires_grad_(True)
+            logits = self._model(x)
+            self._model.zero_grad(set_to_none=True)
+            logits[0, cls].backward()
+            # 아래 x.grad가 None인 경우 Pylance 오류 때문에 추가
+            assert x.grad is not None, msg.trading.not_compute_gradient
+            saliency = (x.grad[0].abs() * x[0].abs()).sum(dim=0)
+            # TODO 3: self._build_contrib() 작성 후
+
+    @staticmethod
+    def _build_contrib(saliency: np.ndarray) -> dict:
+        # TODO 4: 
+        # names = extractor.FeatureExtractor 작업 후
+
+        

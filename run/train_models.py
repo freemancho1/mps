@@ -41,6 +41,7 @@ def train_track(
     model: torch.nn.Module, 
     save_path: Path
 ) -> None:
+    # TODO 2: LSTM 처리 후
     pass 
 
 
@@ -52,6 +53,9 @@ def main() -> None:
     args = p.parse_args()
 
     bars = load_bars(args.ticker, args.start, args.end)
+    print(f"--------- len(bars) = {len(bars)}")
+
+    # TODO 1: train_track 처리 후
 
 
 if __name__ == "__main__":

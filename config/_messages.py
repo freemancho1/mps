@@ -14,3 +14,11 @@ data = DictDot(         # Preprocessing DataIo
     fetch_result        = lambda load, bars: CF(f"{load}를 이용해 {len(bars)}개의 분봉을 생성함."),
     fetch_pykrx_result  = lambda s, e, t, d: CF(f"Pykrx 데이터 생성: 기간({s}~{e}), 종목번호: {t}, 데이터 크기: {d.shape}"),
 )
+
+features = DictDot(     # Preprocessing Features
+    label_size          = lambda num: CF(f"라벨링할 봉 갯 수: {num}"),
+)
+
+trading = DictDot(
+    not_compute_gradient = "gradient가 계산되지 않았습니다.",
+)
