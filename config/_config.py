@@ -5,7 +5,7 @@ import math
 from pathlib import Path 
 from datetime import time 
 from zoneinfo import ZoneInfo 
-from dataclasses import dataclass, field 
+from dataclasses import dataclass, field, asdict 
 
 
 @dataclass 
@@ -15,12 +15,15 @@ class _RunConfig:
     start_date_str: str         = "20250101"
     end_date_str: str           = "20251231"
     init_capital: float         = 10_000_000.0
+    
+    # Model Training Config
+    torch_device: str           = "gpu"
 
     # 데이터 읽어오는 방식
     force_data_refresh: bool    = False                 # 강제로 데이터 읽어오기: 읽어오지 않음(Fasle)
 
     # 일자 정보
-    days_per_year: int          = 252
+    days_per_year: int          = 252                   # 임의로 잡은 날짜이고, krx에서 실 거래일자만 가져옴(25년도 242일)
     minutes_per_day: int        = 60 * 6 + 30           # 09:00 ~ 15:30 = 390분
     force_close_minutes: int    = 15                    # 강제 종료 시간
 
@@ -29,6 +32,12 @@ class _RunConfig:
     open_time: time             = field(init=False)
     close_time_str: str         = "15:30"
     close_time: time            = field(init=False)
+    # 시간대별 거래량 비중
+    volume_weight_09: float     = 2.6                   # 2.6 배
+    volume_weight_12: float     = 1.5
+    volume_weight_15: float     = 2.3
+    # 고가/저가: 시가·종가 범위에 작은 노이즈 추가 (현실적 캔들 형태)
+    min_max_noise: float        = 0.5
 
     # 룩백 윈도우: 신호 생성전 반드시 확보해야 할 과거 봉 수
     lookback_minutes: int       = 120
@@ -141,6 +150,18 @@ class _KeyConfig:
     test_days: str              = "--test_days"
 
 
+@dataclass 
+class _LSTMConfig:
+    input_size: int             = 14
+    hidden_size: int            = 64
+    num_layers: int             = 2
+    num_classes: int            = 3         # BUY·SELL·HOLD
+    dropout: float              = 0.2
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
 # ── 전역 싱글톤 ─────────────────────────
 @dataclass 
 class _Config:
@@ -152,6 +173,7 @@ class _Config:
     log: _LogConfig = field(init=False)
     store: _StoreConfig = field(init=False)
     key: _KeyConfig = field(default_factory=_KeyConfig)
+    lstm: _LSTMConfig = field(default_factory=_LSTMConfig)
 
     def __post_init__(self) -> None:
         self._data_dir = self._root_dir / "data"

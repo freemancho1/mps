@@ -53,7 +53,9 @@ class HistoricalDataLoader:
             return cfg.store.load_store, cached_bars    # "STORE", 데이터
         
         load_from, bars = self._fetch(ticker, start_date, end_date)
-        # TODO 3: 이곳에 있는 def _fetch() 생성 후 작업
+        print(msg.data.fetch_result(load_from, bars))
+        self._store.save_bars(bars)
+        return load_from, bars
 
     def _fetch(
         self, 
@@ -63,9 +65,7 @@ class HistoricalDataLoader:
     ) -> tuple[str, list[Bar]]:
         """ 데이터 획득(조회 또는 합성) """
         if cfg.kis.app_key:
-            print(msg.data.fetch.from_kis)
             return self._fetch_kis(ticker, start_date, end_date)
-        print(msg.data.fetch.from_pykrx)
         return self._fetch_synthetic(ticker, start_date, end_date)
     
     def _fetch_kis(
@@ -96,7 +96,7 @@ class HistoricalDataLoader:
         # pykrx 일봉 조회 라이브러리:
         # ─ 컬럼 = 시가, 고가, 저가, 종가, 거래량 (한국어 컬럼명)
         df = krx.get_market_ohlcv_by_date(start_date_str, end_date_str, ticker)
-        print(msg.data.fetch.pykrx_info(start_date_str, end_date_str, ticker, df))
+        print(msg.data.fetch_pykrx_result(start_date_str, end_date_str, ticker, df))
         if df.empty:
             return cfg.store.load_pykrx, []
         
@@ -109,7 +109,7 @@ class HistoricalDataLoader:
                 "high": float(cast(Any, row.고가)),
                 "low": float(cast(Any, row.저가)),
                 "close": float(cast(Any, row.종가)),
-                "volumn": int(cast(Any, row.거래량)),
+                "volume": int(cast(Any, row.거래량)),
             }
             bars.extend(_synthesize_minute_bars(ticker, d, ohlcv, rng))
 
@@ -122,8 +122,8 @@ def _synthesize_minute_bars(
     rng: np.random.Generator
 ) -> list[Bar]:
     """ 일봉 OHLCV을 이용해 분봉 390개 합성 (브라운 운동 기반). """
-    _open, _high, _low, _close, _volumn = \
-        ohlcv["open"], ohlcv["high"], ohlcv["low"], ohlcv["close"], ohlcv["volumn"]
+    _open, _high, _low, _close, _volume = \
+        ohlcv["open"], ohlcv["high"], ohlcv["low"], ohlcv["close"], ohlcv["volume"]
     
     num = cfg.run.minutes_per_day
 
@@ -134,7 +134,54 @@ def _synthesize_minute_bars(
 
     # 누적 수익률 → 가격 경로
     prices = _open * np.cumprod(1 + increments)
-    p_min, p_max = prices.min(), prices.max()
+    p_max, p_min = prices.max(), prices.min()
+    if p_max > p_min:
+        prices = _low + (prices - p_min) / (p_max - p_min) * (_high - _low)
+    else:   # 모든 금액이 동일한 경우
+        prices[:] = float(_open)
+    prices[-1] = float(_close) # 마지막 봉 종가는 일봉 종가에 강제 일치
     
-
+    # 거래량 분산: 실제 KOSPI 패턴 모방 (시가·점심·마감 집중)
+    volume_weights = _volume_weights(num, rng)
+    volumes = (volume_weights * _volume).astype(int)
+    
+    open_dt = market_open_dt(curr_date)     # 당일 09:00:00 KST
+    bars: list[Bar] = []
+    prev = _open                            # 각 분봉의 시가 = 직전 분봉의 종가(익일 종가)
+    for idx in range(num):                  # 하루 단위로 진행 (num=390)
+        curr_datetime = open_dt + timedelta(minutes=idx)
+        o = prev
+        c = prices[idx]
+        # 고가/저가: 시가·종가 범위에 작은 노이즈(0.5) 추가 (현실적 캔들 형태)
+        h = max(o, c) * (1 + rng.uniform(0, vol * cfg.run.min_max_noise))
+        l = min(o, c) * (1 - rng.uniform(0, vol * cfg.run.min_max_noise))
+        # 일봉 레인지 초과 방지
+        h = min(h, _high)
+        l = max(l, _low)
+        bars.append(Bar(
+            ticker=ticker, 
+            timestamp=curr_datetime, 
+            open=round(o, 0),
+            high=round(h, 0),
+            low=round(l, 0),
+            close=round(c, 0),
+            volume=int(volumes[idx]),
+            is_complete=True,
+        ))
+        prev = c
         
+    return bars
+    
+def _volume_weights(num: int, rng: np.random.Generator) -> np.ndarray:
+    """ 
+    KOSPI 거래량 패턴 모방: 시가·점심·마감에 집중하는 패턴 유지
+    
+    - 실제 KOSPI 거래량은 장 초반(09:00~09:30)과 장 마감(15:00~15:30)에 급증하고,
+      점심 시간대(12:00~12:30)에도 소폭 증가하는 W자형 패턴을 보임
+    """
+    weight = rng.uniform(0.5, 1.5, num)         # 기본: 균등 분포, num(=390, 일별 봉 수)
+    weight[:30] *= cfg.run.volume_weight_09     # 처음 30분: 거래량 2.6배
+    weight[120:150] *= cfg.run.volume_weight_12 # 점심 12시: 거래량 1.5배
+    weight[360:] *= cfg.run.volume_weight_15    # 마감 30분: 거래량 2.3배
+    return weight / weight.sum()                # 합이 1이 되도록 정규화 → 일 거래량 * 각 가중치
+    

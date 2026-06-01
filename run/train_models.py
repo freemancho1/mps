@@ -15,17 +15,33 @@ from __future__ import annotations
 
 import numpy as np 
 import argparse 
-from datetime import date, datetime, timedelta 
-from zoneinfo import ZoneInfo 
+import torch
+from datetime import datetime
+from pathlib import Path
 
+from mps.pp.dataio.store import LocalParquetStore
+from mps.pp.dataio.loader import HistoricalDataLoader
 from mps.config import cfg, msg
 from mps.core.types import Bar
 
 
-# TODO 1: 여기 수행 필요
 def load_bars(ticker: str, start: str, end: str) -> list[Bar]:
-    print(f"Run load_bars... ticker[{ticker}], date={start}~{end}")
-    return []
+    store = LocalParquetStore()
+    loader = HistoricalDataLoader(store)
+    start_date = datetime.strptime(start, cfg.run.date_format).date()
+    end_date = datetime.strptime(end, cfg.run.date_format).date()
+    print(msg.tm.info(ticker, start_date, end_date))
+    _, bars = loader.load(ticker, start_date, end_date)
+    return bars
+
+
+def train_track(
+    bars: list[Bar], 
+    track: str, 
+    model: torch.nn.Module, 
+    save_path: Path
+) -> None:
+    pass 
 
 
 def main() -> None:
