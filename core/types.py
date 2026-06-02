@@ -45,6 +45,8 @@ class Bar:
     is_complete: bool = False   # 봉 완성 여부 ─ False인 봉은 파이프라인에 진입 불가
 
 
+# ── 모델 입력용 데이터 타입 ───────────────────────
+
 @dataclass
 class NumericInput:
     """ 
@@ -65,4 +67,28 @@ class NumericInput:
     raw_window: np.ndarray      # shape [N, num_features] ─ 정규화 이전 원본 (룰 모델용)
     window_size: int            # 120~240 (cfg.run.lookback_minutes=120)
 
+    
+# ── 모델 출력용 신호 타입 ─────────────────────────
+
+@dataclass 
+class NumericSignal:
+    """ 
+    수치 트랙 ─ SignalAggregator로 전달되는 신호
+    
+    direction: LSTM이 판정한 방향(Phase-2)
+    confidence: 모델의 확신도로 0.0 ~ 1.0
+    feature_contrib: 어떤 피처가 이 신호를 만들었는지 (관측 가능성 원칙)
+        → logs·signals.jsonl에 기록하여 사후 분석에 활용
+    latency_ms: 모델 추론에 걸린 시간 ─ LatencyGuard의 판단 근거
+    """
+    ticker: str
+    timestamp: datetime 
+    direction: Direction
+    confidence: float 
+    feature_contrib: dict   # { "rsi_14": 28.3, "macd_diff": 0.12, ...}
+    latency_ms: float 
+    
+    
+    
+    
     

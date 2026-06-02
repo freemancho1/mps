@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import mplfinance as mpf 
 
-from dataclasses import dataclass 
+from dataclasses import dataclass, field 
 from typing import Any, Optional
 
 
 @dataclass 
 class _FontConfig:
-    font_paths: dict[str, list[str]] = {
+    font_paths: dict[str, list[str]] = field(default_factory=lambda: {
         "Windows": [
             "C:\\Windows\\Fonts\\malgun.ttf",
             "C:\\Windows\\Fonts\\gulim.ttc",
@@ -24,7 +24,7 @@ class _FontConfig:
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
             "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",            
         ],
-    }
+    })
     
 
 def _configure_warnings():

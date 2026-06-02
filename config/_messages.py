@@ -16,9 +16,15 @@ data = DictDot(         # Preprocessing DataIo
 )
 
 features = DictDot(     # Preprocessing Features
-    label_size          = lambda num: CF(f"라벨링할 봉 갯 수: {num}"),
+    label_size          = lambda num: CF(f"라벨링할 봉 갯 수: {num:,}개"),
 )
 
 trading = DictDot(
     not_compute_gradient = "gradient가 계산되지 않았습니다.",
+    track_title         = lambda b, t, m, p: CF(
+                            f"===== [{t.upper()}] ===============================\n"
+                            f"학습용 봉 갯 수: {len(b):,}개, 모델 명: {m.__class__.__name__}, 저장 위치: {p}"
+                        ),
+    sample_labels       = lambda ds, dist: CF(f"학습 샘플: {len(ds)}개, 라벨 분포: {dist}"),
+    save_model_info     = lambda d: CF(f"model save info: {d}"),
 )

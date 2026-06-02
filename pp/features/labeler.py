@@ -45,7 +45,7 @@ class TripleBarrierLabeler:
     ) -> None:
         self._take_profit = take_profit 
         self._stop_loss = stop_loss 
-        self._time_horizon = time_horizon
+        self.time_horizon = time_horizon
 
     def label(self, bars: list[Bar]) -> np.ndarray:
         """ 
@@ -68,7 +68,7 @@ class TripleBarrierLabeler:
             entry = closes[pit]
             take_profit_line = entry * (1.0 + self._take_profit)
             stop_loss_line = entry * (1.0 - self._stop_loss)
-            end = min(pit + self._time_horizon, num - 1)
+            end = min(pit + self.time_horizon, num - 1)
 
             outcome: Direction = "HOLD"
             for idx in range(pit + 1, end + 1):

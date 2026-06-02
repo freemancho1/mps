@@ -21,6 +21,9 @@ from pathlib import Path
 
 from mps.pp.dataio.store import LocalParquetStore
 from mps.pp.dataio.loader import HistoricalDataLoader
+from mps.pp.features.labeler import TripleBarrierLabeler
+from mps.pp.features.dataset import TripleBarrierDataset
+from mps.models.numeric.lstm import LSTMNet
 from mps.config import cfg, msg
 from mps.core.types import Bar
 
@@ -41,8 +44,13 @@ def train_track(
     model: torch.nn.Module, 
     save_path: Path
 ) -> None:
-    # TODO 2: LSTM 처리 후
-    pass 
+    print(msg.trading.track_title(bars, track, model, save_path))
+    labeler = TripleBarrierLabeler()
+    dataset = TripleBarrierDataset(bars, track, labeler=labeler)
+    dist = dict(zip([cfg.key.BUY, cfg.key.SELL, cfg.key.HOLD], dataset.class_counts().tolist()))
+    print(msg.trading.sample_labels(dataset, dist))
+    
+    # TODO 1: ModelTrainer 작업 후
 
 
 def main() -> None:
@@ -55,7 +63,12 @@ def main() -> None:
     bars = load_bars(args.ticker, args.start, args.end)
     print(f"--------- len(bars) = {len(bars)}")
 
-    # TODO 1: train_track 처리 후
+    train_track(
+        bars=bars, 
+        track=cfg.run.numeric_track,
+        model=LSTMNet(**cfg.lstm.to_dict()),
+        save_path=cfg.model.lstm_model_fpath
+    )
 
 
 if __name__ == "__main__":

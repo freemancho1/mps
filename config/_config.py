@@ -20,9 +20,16 @@ class _RunConfig:
     
     # Model Training Config
     torch_device: str           = "gpu"
-
-    no_signal: tuple[Direction, float, dict] = ("HOLD", 0.0, {})
-
+    numeric_track: str          = "numeric"
+    pattern_track: str          = "pattern"
+                                                        # 방향성 없음
+                                                        # tuple 자체는 field로 감싸지 않아도 되지만,
+                                                        # tuple 속에 있는 {}가 나중에 공유될 수 있어 감쌈.
+    no_signal: tuple[Direction, float, dict] = field(default_factory=lambda: ("HOLD", 0.0, {}))    
+                                                        # 14개 생성 피처 ─ 순서 변경되면 안 됨
+                                                        # 실제 정의는 _Config에서 정의됨
+    feature_names: list[str]    = field(default_factory=list) 
+    
     # 데이터 읽어오는 방식
     force_data_refresh: bool    = False                 # 강제로 데이터 읽어오기: 읽어오지 않음(Fasle)
 
@@ -143,6 +150,41 @@ class _StoreConfig:
     def __post_init__(self) -> None:
         self.dir = self.base_dir / "store"
         self.dir.mkdir(parents=True, exist_ok=True)
+        
+
+@dataclass 
+class _ModelConfig:
+    base_dir: Path              = field(repr=False)
+    lstm_model_fpath: Path      = field(init=False)
+    cnn_model_fpath: Path       = field(init=False)
+    
+    _model_dir: str             = "models"
+    _lstm_fname: str            = "lstm_numeric.pt"
+    _cnn_fname: str             = "cnn_pattern.pt"
+    
+    def __post_init__(self) -> None:
+        self.lstm_model_fpath = self.base_dir / self._model_dir / self._lstm_fname
+        self.cnn_model_fpath = self.base_dir / self._model_dir / self._cnn_fname
+        
+
+@dataclass 
+class _TrainConfig:
+    epochs: int                 = 40
+    batch_size: int             = 64
+    lr: float                   = 1e-3
+    weight_decay: float         = 1e-5
+    val_ratio: float            = 0.2       # 뒤 20%를 검증에 사용
+    patience: int               = 6         # 조기 종료 인내심
+    seed: int                   = field(init=False)
+    device: str                 = field(init=False)
+    
+@dataclass 
+class _TrainHistory:
+    train_loss: list[float]     = field(default_factory=list)
+    val_los: list[float]        = field(default_factory=list)
+    val_acc: list[float]        = field(default_factory=list)
+    best_epoch: int             = -1
+    best_val_loss: float        = float("inf")
 
 
 @dataclass 
@@ -152,6 +194,31 @@ class _KeyConfig:
     end: str                    = "--end"
     capital: str                = "--capital"
     test_days: str              = "--test_days"
+    
+    open: str                   = "open"
+    high: str                   = "high"
+    low: str                    = "low"
+    close: str                  = "close"
+    volume: str                 = "volume"
+    
+    rsi_14: str                 = "rsi_14"
+    macd: str                   = "macd"
+    macd_signal: str            = "macd_signal"
+    macd_diff: str              = "macd_diff"
+    bb_upper: str               = "bb_upper"
+    bb_mid: str                 = "bb_mid"
+    bb_lower: str               = "bb_lower"
+    bb_pband: str               = "bb_pband"
+    obv: str                    = "obv"
+    atr_14: str                 = "atr_14"
+    volume_ratio: str           = "volume_ratio"
+    ret_1: str                  = "ret_1"
+    ret_5: str                  = "ret_5"
+    ret_20: str                 = "ret_20"
+    
+    BUY: str                    = "BUY"
+    SELL: str                   = "SELL"
+    HOLD: str                   = "HOLD"
 
 
 @dataclass 
@@ -176,13 +243,27 @@ class _Config:
     kis: _KisApiConfig = field(default_factory=_KisApiConfig)
     log: _LogConfig = field(init=False)
     store: _StoreConfig = field(init=False)
+    model: _ModelConfig = field(init=False)
     key: _KeyConfig = field(default_factory=_KeyConfig)
     lstm: _LSTMConfig = field(default_factory=_LSTMConfig)
+    train: _TrainConfig = field(default_factory=_TrainConfig)
+    history: _TrainHistory = field(default_factory=_TrainHistory)
 
     def __post_init__(self) -> None:
         self._data_dir = self._root_dir / "data"
         self.log = _LogConfig(base_dir=self._data_dir)
         self.store = _StoreConfig(base_dir=self._data_dir)
+        self.model = _ModelConfig(base_dir=self._data_dir)
+        
+        self.run.feature_names = [
+            self.key.rsi_14, self.key.macd, self.key.macd_signal, self.key.macd_diff,
+            self.key.bb_upper, self.key.bb_mid, self.key.bb_lower, self.key.bb_pband,
+            self.key.obv, self.key.atr_14, self.key.volume_ratio,
+            self.key.ret_1, self.key.ret_5, self.key.ret_20,
+        ]
+        
+        self.train.seed = self.run.seed
+        self.train.device = self.run.torch_device
 
 
 config = _Config()

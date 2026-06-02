@@ -1,4 +1,6 @@
 import inspect
+import numpy as np
+import torch
 from datetime import datetime 
 
 
@@ -24,3 +26,9 @@ def call_function(message: str) -> str:
     SIZE = 25
     location = location[-SIZE:] if len(location) > SIZE else location.rjust(SIZE)
     return f"{location} {message}"
+
+
+def set_seed(seed: int) -> None:
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
