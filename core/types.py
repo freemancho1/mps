@@ -11,7 +11,7 @@
 from __future__ import annotations 
 
 import numpy as np 
-from dataclasses import dataclass 
+from dataclasses import dataclass, field
 from datetime import datetime 
 from typing import Literal, Optional
 
@@ -67,7 +67,23 @@ class NumericInput:
     raw_window: np.ndarray      # shape [N, num_features] ─ 정규화 이전 원본 (룰 모델용)
     window_size: int            # 120~240 (cfg.run.lookback_minutes=120)
 
+
+@dataclass
+class PatternInput:
+    """ 
+    패턴 분석 트랙 입력 데이터 타입
+
+    - PatternNormalizer가 OHLCV를 윈도우 내 최소·최대 기준 0~1로 변환한 결과.
+    - ohlcv_series shape: [lookbook_minutes, 5] ─ [N, (O, H, L, C, V)]
+    - 절대 가격 제거 이유: 동일한 캔들 패턴이 주가 수준에 무관하게 같은 의미여야 함.
+    - chart_image: 비전 모델(CNN·VLM) 도입 시 사용.
+    """
+    ticker: str 
+    timestamp: datetime 
+    ohlcv_series: np.ndarray                    # [N, 5] ─ dtype=float32
+    chart_image: Optional[np.ndarray] = None    # [Height, Width, Channels] ─ Numpy Style
     
+
 # ── 모델 출력용 신호 타입 ─────────────────────────
 
 @dataclass 
@@ -88,7 +104,51 @@ class NumericSignal:
     feature_contrib: dict   # { "rsi_14": 28.3, "macd_diff": 0.12, ...}
     latency_ms: float 
     
+
+@dataclass
+class PatternSignal:
+    """ 
+    패턴 트랙 → SignalAggregator로 전달되는 신호
+
+    - pattern_name: 감지된 패턴 이름 (예: "hammer", "morning_star"...)
+    - source: 신호 생성 방식 ─ "RULE"(phase-1), "CNN"(phase-2), "VISION"(phase-3)
+    """
+    ticker: str 
+    timestampe: datetime 
+    direction: Direction
+    confidence: float 
+    pattern_name: str 
+    source: PatternSource
+    latency_ms: float
+
+
+@dataclass 
+class TradeSignal:
+    """ 
+    SignalAggregator의 결과로 숫자와 패턴 트랙의 합성 신호로 RiskManager의 입력으로 사용
+
+    - 두 트랙이 같은 방향이고, 합산 지연시간이 임계값 이하이고,
+      combined_score >= 0.55 일 때만 이 객체가 생성됨.
+      → 이 객체는 사거나 파는 경우에만 발생하며, 가지고 있는 경우는 없음.
+    """
+    ticker: str 
+    timestamp: datetime 
+    direction: Direction
+    combined_score: float 
+    numeric_track_conf: float 
+    pattern_track_conf: float 
+    total_latency_ms: float
     
+
+# ── 모델 훈련 데이터 ─────────────────────
+
+@dataclass 
+class TrainHistory:
+    train_loss: list[float]     = field(default_factory=list)
+    val_loss: list[float]       = field(default_factory=list)
+    val_acc: list[float]        = field(default_factory=list)
+    best_epoch: int             = -1
+    best_val_loss: float        = float("inf")
     
     
     

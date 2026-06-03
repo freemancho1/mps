@@ -76,18 +76,19 @@ class LSTMModel:
     def __init__(
         self,
         weights_path: Optional[Path] = None, 
-        device: str = cfg.run.torch_device,     # gpu
-        model_arch: dict = cfg.lstm.to_dict(),
+        device: str = cfg.run.torch_device,     # cuda
+        model_arch: Optional[dict] = None,
         attribute: bool = True,
     ) -> None:
         self._device = torch.device(device)
-        self._model = LSTMNet(**model_arch).to(self._device)
+        self._model_arch = model_arch or cfg.lstm.to_dict()
+        self._model = LSTMNet(**self._model_arch).to(self._device)
         self._attribute = attribute
         self._trained = False 
 
         if weights_path is not None and Path(weights_path).exists():
             ckpt = torch.load(weights_path, map_location=self._device)
-            state = ckpt["state_dict"] if "state_dict" in ckpt else ckpt 
+            state = ckpt[cfg.key.state_dict] if cfg.key.state_dict in ckpt else ckpt 
             self._model.load_state_dict(state)
             self._trained = True 
         
@@ -112,7 +113,7 @@ class LSTMModel:
             conf = float(probs[cls].item())
 
         direction: Direction = IDX_TO_LABEL[cls]
-        if direction == "HOLD":
+        if direction == cfg.key.HOLD:
             return cfg.run.no_signal    # "HOLD", 0.0, {} → 신호 미발생
         
         # 2차: 실제 신호(BUY·SELL)가 발생한 경우에만 어트리뷰션 계산
@@ -124,7 +125,7 @@ class LSTMModel:
             self._model.zero_grad(set_to_none=True)
             logits[0, cls].backward()
             # 아래 x.grad가 None인 경우 Pylance 오류 때문에 추가
-            assert x.grad is not None, msg.trading.not_compute_gradient
+            assert x.grad is not None, msg.training.not_compute_gradient
             saliency = (x.grad[0].abs() * x[0].abs()).sum(dim=0)
             contrib = LSTMModel._build_contrib(saliency.detach().cpu().numpy())
             

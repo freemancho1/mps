@@ -12,6 +12,9 @@ from typing import Protocol, runtime_checkable
 
 from mps.core.types import (
     Bar, 
+    NumericInput, NumericSignal,
+    PatternInput, PatternSignal,
+    TradeSignal,
 )
 
 
@@ -30,3 +33,23 @@ class DataStorePort(Protocol):
     ) -> list[Bar]: ...
     def list_tickers(self) -> list[str]: ...
 
+
+# ── 모델 교체 인터피이스 (Protocol) ──────────────────
+""" 
+모델 포트(protocol) ─ phase 전환 시 교체 비용을 0으로 만드는 인터페이스 격리
+
+- ThresholdModel(phase-1)·LSTMModel(phase-2)이 NumericModelPort를,
+  RuleBasedPatternEngine(phase-1)·CNN1DPatternModel(phase-2)이 PatternModelPort를
+  각각 구조적으로 만족함 (명시적 상속 불필요)
+"""
+
+@runtime_checkable
+class NumericModelPort(Protocol):
+    """ 수치 트랙 모델 인터페이스 (Threshold/LSTM/Transformer 공통) """
+    def run(self, inp: "NumericInput") -> "NumericSignal": ...
+
+
+@runtime_checkable
+class PatternModelPort(Protocol):
+    """ 패턴 트랙 모델 인터페이스 (Rule/CNN/Vision 공통) """
+    def run(self, inp: "PatternInput") -> "PatternSignal": ...

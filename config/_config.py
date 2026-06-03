@@ -19,7 +19,7 @@ class _RunConfig:
     init_capital: float         = 10_000_000.0
     
     # Model Training Config
-    torch_device: str           = "gpu"
+    torch_device: str           = "cuda"
     numeric_track: str          = "numeric"
     pattern_track: str          = "pattern"
                                                         # 방향성 없음
@@ -75,7 +75,7 @@ class _RunConfig:
 
     # Triple Barrier 라벨링 임계값 설정
     take_profit: float          = 0.02                  # 2.0%
-    stop_loss: float            = 0.005                 # -0.5%
+    stop_loss: float            = 0.01                  # -1.0%
     time_horizon: int           = 60                    # 60분
 
     # 거래 제약조건
@@ -171,21 +171,13 @@ class _ModelConfig:
 class _TrainConfig:
     epochs: int                 = 40
     batch_size: int             = 64
-    lr: float                   = 1e-3
-    weight_decay: float         = 1e-5
+    lr: float                   = 1e-4
+    weight_decay: float         = 1e-4
     val_ratio: float            = 0.2       # 뒤 20%를 검증에 사용
-    patience: int               = 6         # 조기 종료 인내심
+    patience: int               = 10        # 조기 종료 인내심
     seed: int                   = field(init=False)
     device: str                 = field(init=False)
     
-@dataclass 
-class _TrainHistory:
-    train_loss: list[float]     = field(default_factory=list)
-    val_los: list[float]        = field(default_factory=list)
-    val_acc: list[float]        = field(default_factory=list)
-    best_epoch: int             = -1
-    best_val_loss: float        = float("inf")
-
 
 @dataclass 
 class _KeyConfig:
@@ -215,6 +207,8 @@ class _KeyConfig:
     ret_1: str                  = "ret_1"
     ret_5: str                  = "ret_5"
     ret_20: str                 = "ret_20"
+
+    state_dict: str             = "state_dict"
     
     BUY: str                    = "BUY"
     SELL: str                   = "SELL"
@@ -231,6 +225,16 @@ class _LSTMConfig:
     
     def to_dict(self) -> dict:
         return asdict(self)
+    
+
+@dataclass 
+class _CNNConfig:
+    in_channels: int            = 5
+    num_classes: int            = 3
+    dropout: float              = 0.2
+
+    def to_dict(self) -> dict: 
+        return asdict(self)
 
 
 # ── 전역 싱글톤 ─────────────────────────
@@ -246,8 +250,8 @@ class _Config:
     model: _ModelConfig = field(init=False)
     key: _KeyConfig = field(default_factory=_KeyConfig)
     lstm: _LSTMConfig = field(default_factory=_LSTMConfig)
+    cnn: _CNNConfig = field(default_factory=_CNNConfig)
     train: _TrainConfig = field(default_factory=_TrainConfig)
-    history: _TrainHistory = field(default_factory=_TrainHistory)
 
     def __post_init__(self) -> None:
         self._data_dir = self._root_dir / "data"

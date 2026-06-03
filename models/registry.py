@@ -24,7 +24,7 @@ def save_checkpoint(
     path.parent.mkdir(parents=True, exist_ok=True)
     
     save_info = {"state_dict": model.state_dict(), "meta": meta or {}}
-    print(msg.trading.save_model_info(save_info))
+    # print(msg.training.save_model_info(save_info))
     torch.save(save_info, path)
     
     return path

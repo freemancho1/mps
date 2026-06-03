@@ -19,11 +19,14 @@ import torch
 from datetime import datetime
 from pathlib import Path
 
+from models.registry import save_checkpoint
 from mps.pp.dataio.store import LocalParquetStore
 from mps.pp.dataio.loader import HistoricalDataLoader
 from mps.pp.features.labeler import TripleBarrierLabeler
 from mps.pp.features.dataset import TripleBarrierDataset
 from mps.models.numeric.lstm import LSTMNet
+from mps.models.pattern.cnn import CNN1DNet
+from mps.models.trainer import ModelTrainer
 from mps.config import cfg, msg
 from mps.core.types import Bar
 
@@ -44,13 +47,29 @@ def train_track(
     model: torch.nn.Module, 
     save_path: Path
 ) -> None:
-    print(msg.trading.track_title(bars, track, model, save_path))
+    print(msg.training.track_title(bars, track, model, save_path))
     labeler = TripleBarrierLabeler()
     dataset = TripleBarrierDataset(bars, track, labeler=labeler)
     dist = dict(zip([cfg.key.BUY, cfg.key.SELL, cfg.key.HOLD], dataset.class_counts().tolist()))
-    print(msg.trading.sample_labels(dataset, dist))
+    print(msg.training.sample_labels(dataset, dist))
     
-    # TODO 1: ModelTrainer 작업 후
+    trainer = ModelTrainer()
+    model, history = trainer.train(model, dataset)
+    print(msg.training.result(history))
+
+    meta = {
+        "track": track,
+        "seed": cfg.train.seed,
+        "arch": model.__class__.__name__,
+        "label_dist": dist, 
+        "best_val_loss": round(history.best_val_loss, 5),
+        "best_val_acc": history.val_acc[history.best_epoch],
+        "take_profit": cfg.run.take_profit,
+        "stop_loss": cfg.run.stop_loss,
+        "horizon": cfg.run.time_horizon,
+    }
+    path = save_checkpoint(model, save_path, meta)
+    print(msg.training.save_model_info(meta))
 
 
 def main() -> None:
@@ -61,7 +80,8 @@ def main() -> None:
     args = p.parse_args()
 
     bars = load_bars(args.ticker, args.start, args.end)
-    print(f"--------- len(bars) = {len(bars)}")
+
+    start_time = datetime.now()
 
     train_track(
         bars=bars, 
@@ -69,6 +89,14 @@ def main() -> None:
         model=LSTMNet(**cfg.lstm.to_dict()),
         save_path=cfg.model.lstm_model_fpath
     )
+    train_track(
+        bars=bars,
+        track=cfg.run.pattern_track,
+        model=CNN1DNet(**cfg.cnn.to_dict()),
+        save_path=cfg.model.cnn_model_fpath
+    )
+
+    print(msg.training.finished(datetime.now() - start_time))
 
 
 if __name__ == "__main__":
