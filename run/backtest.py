@@ -10,15 +10,18 @@ import argparse
 from datetime import date, datetime 
 
 from mps.config import cfg, msg 
+from mps.core.types import PerformanceReport
 from mps.pp.dataio.store import LocalParquetStore
 from mps.pp.dataio.loader import HistoricalDataLoader
+from mps.trade.backtest.walk_forward import WalkForwardValidator
 
 
 def main():
     args = parse_args()
     print(msg.bt.args_info(args))
 
-    ticker, start, end, capital = args.ticker, args.start, args.end, args.capital
+    ticker, start, end, capital, test_days = \
+        args.ticker, args.start, args.end, args.capital, args.test_days
     start_date = date(int(start[:4]), int(start[4:6]), int(start[6:]))
     end_date = date(int(end[:4]), int(end[4:6]), int(end[6:]))
 
@@ -34,7 +37,9 @@ def main():
     start_dt = datetime.now()
 
     # ── Walk-Forward 검증 ───────────────────
-    # TODO 0: WalkForwardValidator() 작업하면서 진행
+    validator = WalkForwardValidator(test_days=test_days, capital=capital)
+    reports: list[PerformanceReport] = validator.run(bars)
+    # TODO 0: Simulator 작업 후 계속
 
 
 
@@ -46,6 +51,7 @@ def parse_args():
     p.add_argument(cfg.key.start, default=cfg.run.start_date_str)
     p.add_argument(cfg.key.end, default=cfg.run.end_date_str)
     p.add_argument(cfg.key.capital, type=float, default=cfg.run.init_capital)
+    p.add_argument(cfg.key.test_days, type=int, default=cfg.run.test_days)
 
     return p.parse_args()
 

@@ -21,6 +21,7 @@ BSDirection = Literal["BUY", "SELL"]
 PatternSource = Literal["RULE", "CNN", "VISION"]
 OrderType = Literal["MARKET", "LIMIT"]
 OrderStatus = Literal["PENDING", "FILLED", "PARTIAL", "CANCELLED"]
+ExitReason = Literal["TAKE_PROFIT", "STOP_LOSS", "TIME_OUT", "FORCE_CLOSE"]
 
 
 # ── 원시 데이터 타입 ──────────────────────────
@@ -139,6 +140,100 @@ class TradeSignal:
     pattern_track_conf: float 
     total_latency_ms: float
     
+
+# ── 거래 정보 데이터 ─────────────────────
+@dataclass 
+class Order:
+    """ 
+    RiskManager가 승인하여 실행 레이어(PaperTrader/KISOrderClient)에 전달하는 주문.
+    
+    stop_loss, take_profit: Triple Barrier 기준으로 TripleBarrierGuard가 계산한 절대 가격
+    expire_at: min(진입시간 + 60분, 당일 강제청산 시간(15:15))
+    order_id: 백테스트에서 "{ticker}_{시간}" 문자열, 실거래에서는 KIS 주문번호로 사용
+              TradeRecord에서 "entry_time"값으로 사용
+    """
+    ticker: str 
+    direction: BSDirection
+    quantity: int 
+    order_type: OrderType
+    stop_loss: float 
+    take_profit: float 
+    expire_at: datetime             # 이 시간 이후에는 자동으로 "TIMEOUT" or "FORCE_CLOSE" 처리
+    price: Optional[float] = None   # 진입가 (submit_order 이후 채워짐)
+    order_id: Optional[str] = None  # 고유 주문 ID = {ticker}_{%Y%m%d}
+    
+    
+@dataclass
+class Reject:
+    """ 
+    RiskManager가 주문을 거부할 때 반환하는 이유 객체
+    
+    Phase-1에서는 사용하지 않음.
+    향후 추가 리스크 규칙(일일 손실 한도 초과 등) 구현 시 사용 예정
+    """
+    reason: str 
+    signal: TradeSignal
+    
+    
+@dataclass 
+class OrderResult:
+    """ 
+    PaperTrader(or KISOrderClient)가 주문 제출 후 반환하는 체결 결과.
+    
+    가상 거래에서는 구현하지 않고 실거래 시 구현 예정
+    """
+    order_id: str 
+    status: OrderStatus
+    filled_price: float         # 실제 체결가
+    filled_quantity: int        # 실제 체결 수량
+    timestamp: datetime 
+    slippage: float             # 기대가 대비 체결가 차이 (양수 = 불리하게 체결)
+    
+
+@dataclass 
+class TradeRecord:
+    """ 
+    완결된 거래 한 건의 기록 (진입 + 청산)
+    
+    HistoricalSimulator가 청산 시마다 생성하여 리스트에 추가.
+    PerformanceEvaluator.evaluate()의 입력으로 사용    
+    """
+    ticker: str 
+    direction: BSDirection
+    entry_price: float 
+    exit_price: float 
+    quantity: int 
+    entry_time: str             # 진입 시 order_id 문자열 (예: "{ticker}_{%Y%m%s}")
+    exit_time: object           # 청산 봉의 timestamp (datetime)
+    exit_reason: ExitReason
+    cost: float                 # 왕복 총 비용
+
+
+# ── 성능 측정 정보 데이터 ───────────────────
+@dataclass 
+class PerformanceReport:
+    """ 백테스트 성과 요약 보고서 """
+    total_trades: int 
+    win_rate: float 
+    profit_factor: float 
+    max_drawdown: float 
+    sharpe_ratio: float 
+    total_return_pct: float 
+    avg_return_per_trade_pct: float 
+    total_cost: float
+    
+    def __str__(self) -> str:
+        return (
+            f"총 거래: {self.total_trades:,}건, "
+            f"승률: {self.win_rate:.1%}, "
+            f"수익 인수: {self.profit_factor:.2f}, "
+            f"최대 낙폭: {self.max_drawdown:.1%}, "
+            f"샤프: {self.sharpe_ratio:.2f}, "
+            f"총 수익률: {self.total_return_pct:.2f}, "
+            f"거래당 수익률: {self.avg_return_per_trade_pct:.4%}, "
+            f"총 비용: {self.total_cost:,.0f}원"
+        )
+
 
 # ── 모델 훈련 데이터 ─────────────────────
 

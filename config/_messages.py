@@ -42,3 +42,15 @@ training = DictDot(
         dataset_size    = lambda ds: f"학습 샘플 부족: {len(ds)}개 (최소 10개 필요)",
     ),
 )
+    
+trade = DictDot(
+    bt = DictDot(       # BackTest
+        wf_info         = lambda bd, td, cp: CF(f"버퍼 일 수: {bd}일, 테스트 일 수: {td}일, 초기 자본: {cp:,.0f}원"),
+        wf_skip_err     = lambda m: CF(f"--- skip window in walk-forward: {m}"),
+        sim_info        = lambda b: CF(f"시뮬레이터 실행정보: 윈도우 크기(시작일:{b[0].timestamp.date()} ~ 종료일:{b[-1].timestamp.date()}, {len(b)}개)"),
+        sim_skip_err    = lambda bs, lbs: f"시뮬레이터 입력 데이터 크기({len(bs)})가 기준값({lbs}) 보다 적습니다.",
+    ),
+    o = DictDot(        # observability
+        latency         = lambda ms: CF(f"Latency MS: {ms}"),
+    ),
+)

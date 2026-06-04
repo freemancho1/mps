@@ -17,6 +17,7 @@ class _RunConfig:
     start_date_str: str         = "20250101"
     end_date_str: str           = "20251231"
     init_capital: float         = 10_000_000.0
+    test_days: int              = 10                    # walk_forward의 테스트 윈도우 일자(2주)
     
     # Model Training Config
     torch_device: str           = "cuda"
@@ -36,6 +37,7 @@ class _RunConfig:
     # 일자 정보
     days_per_year: int          = 252                   # 임의로 잡은 날짜이고, krx에서 실 거래일자만 가져옴(25년도 242일)
     minutes_per_day: int        = 60 * 6 + 30           # 09:00 ~ 15:30 = 390분
+    bars_per_day: int           = field(init=False)     # (분봉 기준이니) minutes_per_day와 같은 값 
     force_close_minutes: int    = 15                    # 강제 종료 시간
 
     # 시간 정보
@@ -97,6 +99,7 @@ class _RunConfig:
         self.buffer_days = math.ceil(self.lookback_minutes / self.minutes_per_day) + 1
         self.open_time = time(int(self.open_time_str[:2]), int(self.open_time_str[3:]))
         self.close_time = time(int(self.close_time_str[:2]), int(self.close_time_str[3:]))
+        self.bars_per_day = self.minutes_per_day
 
 
 @dataclass 
@@ -180,39 +183,51 @@ class _TrainConfig:
     
 
 @dataclass 
-class _KeyConfig:
-    ticker: str                 = "--ticker"
-    start: str                  = "--start"
-    end: str                    = "--end"
-    capital: str                = "--capital"
-    test_days: str              = "--test_days"
-    
-    open: str                   = "open"
-    high: str                   = "high"
-    low: str                    = "low"
-    close: str                  = "close"
-    volume: str                 = "volume"
-    
-    rsi_14: str                 = "rsi_14"
-    macd: str                   = "macd"
-    macd_signal: str            = "macd_signal"
-    macd_diff: str              = "macd_diff"
-    bb_upper: str               = "bb_upper"
-    bb_mid: str                 = "bb_mid"
-    bb_lower: str               = "bb_lower"
-    bb_pband: str               = "bb_pband"
-    obv: str                    = "obv"
+class _KeyConfig:               # 알파벳 순
     atr_14: str                 = "atr_14"
-    volume_ratio: str           = "volume_ratio"
+    
+    bb_lower: str               = "bb_lower"
+    bb_mid: str                 = "bb_mid"
+    bb_pband: str               = "bb_pband"
+    bb_upper: str               = "bb_upper"
+    BUY: str                    = "BUY"
+    
+    capital: str                = "--capital"
+    close: str                  = "close"
+    count: str                  = "count"
+    
+    end: str                    = "--end"
+    
+    high: str                   = "high"
+    HOLD: str                   = "HOLD"
+    
+    low: str                    = "low"
+    
+    macd: str                   = "macd"
+    macd_diff: str              = "macd_diff"
+    macd_signal: str            = "macd_signal"
+    max_ms: str                 = "max_ms"
+    mean_ms: str                = "mean_ms"
+    
+    obv: str                    = "obv"
+    open: str                   = "open"
+    
+    p95_ms: str                 = "p95_ms"
+    
     ret_1: str                  = "ret_1"
     ret_5: str                  = "ret_5"
     ret_20: str                 = "ret_20"
-
+    rsi_14: str                 = "rsi_14"
+    
+    SELL: str                   = "SELL"
+    start: str                  = "--start"
     state_dict: str             = "state_dict"
     
-    BUY: str                    = "BUY"
-    SELL: str                   = "SELL"
-    HOLD: str                   = "HOLD"
+    test_days: str              = "--test_days"
+    ticker: str                 = "--ticker"
+    
+    volume: str                 = "volume"
+    volume_ratio: str           = "volume_ratio"
 
 
 @dataclass 
