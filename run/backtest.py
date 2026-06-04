@@ -41,6 +41,8 @@ def main():
     reports: list[PerformanceReport] = validator.run(bars)
     # TODO 0: Simulator 작업 후 계속
 
+    print(msg.bt.processing_time(start_dt, datetime.now()))
+
 
 
 

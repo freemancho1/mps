@@ -43,7 +43,7 @@ class LatencyMonitor:
         start_time = time.perf_counter()
         yield   # 이 부분에서 제어권을 with 블럭으로 넘김
         elapsed_ms = (time.perf_counter() - start_time) * 1000
-        print(msg.trade.o.latency(elapsed_ms))
+        # print(msg.trade.o.latency(elapsed_ms))    # Latency MS: 3.0921380002837395
         self._records[component].append(elapsed_ms)
         
     def record(self, component: str, latency_ms: float) -> None:

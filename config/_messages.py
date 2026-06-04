@@ -12,6 +12,7 @@ bt = DictDot(           # BackTest
     args_info           = lambda a: CF(f"args info: {a}"),
     dataload_info       = lambda lf, b: CF(f"[{lf}]에서 데이터 로드: {len(b):,}개"),
     dataload_err        = CF("학습에 사용할 데이터가 없습니다."),
+    processing_time     = lambda sdt, edt: CF(f"[{edt}] 전체 처리 시간: {edt - sdt}"),
 )
 
 data = DictDot(         # Preprocessing DataIo
@@ -24,6 +25,7 @@ data = DictDot(         # Preprocessing DataIo
 
 features = DictDot(     # Preprocessing Features
     label_size          = lambda num: CF(f"라벨링할 봉 갯 수: {num:,}개"),
+    extractor_size      = lambda df: CF(f"숫자 피처 추출 후 행렬 shape: {df.shape}"),
 )
 
 training = DictDot(
@@ -47,8 +49,10 @@ trade = DictDot(
     bt = DictDot(       # BackTest
         wf_info         = lambda bd, td, cp: CF(f"버퍼 일 수: {bd}일, 테스트 일 수: {td}일, 초기 자본: {cp:,.0f}원"),
         wf_skip_err     = lambda m: CF(f"--- skip window in walk-forward: {m}"),
-        sim_info        = lambda b: CF(f"시뮬레이터 실행정보: 윈도우 크기(시작일:{b[0].timestamp.date()} ~ 종료일:{b[-1].timestamp.date()}, {len(b)}개)"),
+        sim_info        = lambda b: CF(f"시뮬레이터 실행 정보: 윈도우 크기(시작일:{b[0].timestamp.date()} ~ 종료일:{b[-1].timestamp.date()}, {len(b)}개)"),
         sim_skip_err    = lambda bs, lbs: f"시뮬레이터 입력 데이터 크기({len(bs)})가 기준값({lbs}) 보다 적습니다.",
+        sim_result      = lambda sum: CF(f"시뮬레이터 실행 결과:\n{sum}"),
+        normal_skip_err = lambda bs, ws: f"정규화 입력 데이터 크기({len(bs)})가 기준값({ws}) 보다 적습니다.",
     ),
     o = DictDot(        # observability
         latency         = lambda ms: CF(f"Latency MS: {ms}"),

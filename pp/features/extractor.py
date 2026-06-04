@@ -26,7 +26,7 @@ from ta.volatility import BollingerBands, AverageTrueRange
 from ta.volume import OnBalanceVolumeIndicator
 
 from mps.core.types import Bar 
-from mps.config import cfg
+from mps.config import cfg, msg
 
 
 class FeatureExtractor:
@@ -39,6 +39,7 @@ class FeatureExtractor:
         """
         df = self._to_df(bars)
         features_df = self._compute(df)
+        # print(msg.features.extractor_size(features_df))   # 170, 14
         return features_df.values.astype(np.float32)
         
     def _to_df(self, bars: list[Bar]) -> pd.DataFrame:

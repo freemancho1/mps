@@ -25,7 +25,7 @@ from typing import Optional
 
 from mps.core.types import Bar 
 from mps.config import cfg, msg 
-from mps.models.numeric.extractor import FeatureExtractor
+from mps.pp.features.extractor import FeatureExtractor
 from mps.pp.features.labeler import TripleBarrierLabeler
 
 

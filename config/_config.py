@@ -197,6 +197,8 @@ class _KeyConfig:               # 알파벳 순
     count: str                  = "count"
     
     end: str                    = "--end"
+
+    feature: str                = "feature"
     
     high: str                   = "high"
     HOLD: str                   = "HOLD"
@@ -208,10 +210,13 @@ class _KeyConfig:               # 알파벳 순
     macd_signal: str            = "macd_signal"
     max_ms: str                 = "max_ms"
     mean_ms: str                = "mean_ms"
+
+    numeric: str                = "numeric"
     
     obv: str                    = "obv"
     open: str                   = "open"
     
+    pattern: str                = "pattern"
     p95_ms: str                 = "p95_ms"
     
     ret_1: str                  = "ret_1"

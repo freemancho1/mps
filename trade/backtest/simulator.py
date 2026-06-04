@@ -27,6 +27,9 @@ from mps.config import cfg, msg
 from mps.core.types import Bar, Order, TradeRecord, PerformanceReport
 from mps.core.ports import NumericModelPort, PatternModelPort
 from mps.pp.features.validator import BarValidator
+from mps.pp.features.extractor import FeatureExtractor
+from mps.pp.features.normalizer import NumericNormalizer, PatternNormalizer
+from mps.trade.observability import LatencyMonitor
 
 
 
@@ -42,6 +45,11 @@ class HistoricalSimulator:
         self._lookback_minutes = lookback_minutes
         
         self._validator = BarValidator()
+        self._extractor = FeatureExtractor()
+        self._numeric_normalizer = NumericNormalizer()
+        self._pattern_normalizer = PatternNormalizer()
+
+        self._latency = LatencyMonitor()
         
     def run(self, bars: list[Bar]) -> PerformanceReport:
         print(msg.trade.bt.sim_info(bars))
@@ -84,9 +92,13 @@ class HistoricalSimulator:
             buffer_list: list[Bar] = list(buffer)
             
             # 4-1. 피처 추출 및 정규화 --------------
-            # TODO 1: latency 작업 + 정규화 작업 종료 후 수행
-            # TODO Z: 여기부터 
-            
-        
-        
+            with self._latency.measure(cfg.key.feature):
+                raw = self._extractor.extract(buffer_list)
+                numeric_input = self._numeric_normalizer.transform(buffer_list, raw)
+                pattern_input = self._pattern_normalizer.transform(buffer_list)
+
+            # TODO Z: 여기 처리
+
+
+        print(msg.trade.bt.sim_result(self._latency.summary()))
         return None
