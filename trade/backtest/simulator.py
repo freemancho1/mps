@@ -97,7 +97,7 @@ class HistoricalSimulator:
                 numeric_input = self._numeric_normalizer.transform(buffer_list, raw)
                 pattern_input = self._pattern_normalizer.transform(buffer_list)
 
-            # TODO Z: 여기 처리
+            # TODO 1: Factory 처리 후
 
 
         print(msg.trade.bt.sim_result(self._latency.summary()))

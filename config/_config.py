@@ -7,7 +7,7 @@ from datetime import time
 from zoneinfo import ZoneInfo 
 from dataclasses import dataclass, field, asdict
 
-from mps.core.types import Direction 
+from mps.core.types import Direction, BSDirection
 
 
 @dataclass 
@@ -27,9 +27,11 @@ class _RunConfig:
                                                         # tuple 자체는 field로 감싸지 않아도 되지만,
                                                         # tuple 속에 있는 {}가 나중에 공유될 수 있어 감쌈.
     no_signal: tuple[Direction, float, dict] = field(default_factory=lambda: ("HOLD", 0.0, {}))    
+    no_signal_pattern: tuple[Direction, float, str] = field(default_factory=lambda: ("HOLD", .0, "none"))
                                                         # 14개 생성 피처 ─ 순서 변경되면 안 됨
                                                         # 실제 정의는 _Config에서 정의됨
     feature_names: list[str]    = field(default_factory=list) 
+    feature_idx: dict[str, int] = field(init=False)
     
     # 데이터 읽어오는 방식
     force_data_refresh: bool    = False                 # 강제로 데이터 읽어오기: 읽어오지 않음(Fasle)
@@ -190,7 +192,7 @@ class _KeyConfig:               # 알파벳 순
     bb_mid: str                 = "bb_mid"
     bb_pband: str               = "bb_pband"
     bb_upper: str               = "bb_upper"
-    BUY: str                    = "BUY"
+    BUY: Direction | BSDirection = "BUY"
     
     capital: str                = "--capital"
     close: str                  = "close"
@@ -201,7 +203,7 @@ class _KeyConfig:               # 알파벳 순
     feature: str                = "feature"
     
     high: str                   = "high"
-    HOLD: str                   = "HOLD"
+    HOLD: Direction | BSDirection = "HOLD"
     
     low: str                    = "low"
     
@@ -224,7 +226,7 @@ class _KeyConfig:               # 알파벳 순
     ret_20: str                 = "ret_20"
     rsi_14: str                 = "rsi_14"
     
-    SELL: str                   = "SELL"
+    SELL: Direction | BSDirection = "SELL"
     start: str                  = "--start"
     state_dict: str             = "state_dict"
     
@@ -233,7 +235,18 @@ class _KeyConfig:               # 알파벳 순
     
     volume: str                 = "volume"
     volume_ratio: str           = "volume_ratio"
+    
 
+@dataclass 
+class _StrConfig: 
+    bearish_engulfing: str      = "BEARISH_ENGULFING"
+    box_breakout: str           = "BOX_BREAKOUT"
+    bullish_engulfing: str      = "BULLISH_ENGULFING"
+    evening_star: str           = "EVENING_STAR"
+    hammer: str                 = "HAMMER"
+    morning_star: str           = "MORNING_STAR"
+    shooting_star: str          = "SHOOTING_STAR"
+    
 
 @dataclass 
 class _LSTMConfig:
@@ -269,6 +282,7 @@ class _Config:
     store: _StoreConfig = field(init=False)
     model: _ModelConfig = field(init=False)
     key: _KeyConfig = field(default_factory=_KeyConfig)
+    str: _StrConfig = field(default_factory=_StrConfig)
     lstm: _LSTMConfig = field(default_factory=_LSTMConfig)
     cnn: _CNNConfig = field(default_factory=_CNNConfig)
     train: _TrainConfig = field(default_factory=_TrainConfig)
@@ -285,6 +299,7 @@ class _Config:
             self.key.obv, self.key.atr_14, self.key.volume_ratio,
             self.key.ret_1, self.key.ret_5, self.key.ret_20,
         ]
+        self.run.feature_idx = {name: idx for idx, name in enumerate(self.run.feature_names)}
         
         self.train.seed = self.run.seed
         self.train.device = self.run.torch_device
