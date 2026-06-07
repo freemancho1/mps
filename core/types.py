@@ -13,7 +13,7 @@ from __future__ import annotations
 import numpy as np 
 from dataclasses import dataclass, field
 from datetime import datetime 
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 
 Direction = Literal["BUY", "SELL", "HOLD"]
@@ -22,6 +22,7 @@ PatternSource = Literal["RULE", "CNN", "VISION"]
 OrderType = Literal["MARKET", "LIMIT"]
 OrderStatus = Literal["PENDING", "FILLED", "PARTIAL", "CANCELLED"]
 ExitReason = Literal["TAKE_PROFIT", "STOP_LOSS", "TIME_OUT", "FORCE_CLOSE"]
+ExitHoldReason = Union[ExitReason, Literal["HOLD"]]
 
 
 # ── 원시 데이터 타입 ──────────────────────────
@@ -115,7 +116,7 @@ class PatternSignal:
     - source: 신호 생성 방식 ─ "RULE"(phase-1), "CNN"(phase-2), "VISION"(phase-3)
     """
     ticker: str 
-    timestampe: datetime 
+    timestamp: datetime 
     direction: Direction
     confidence: float 
     pattern_name: str 
@@ -159,8 +160,8 @@ class Order:
     stop_loss: float 
     take_profit: float 
     expire_at: datetime             # 이 시간 이후에는 자동으로 "TIMEOUT" or "FORCE_CLOSE" 처리
+    order_id: str                   # 고유 주문 ID = {ticker}_{%Y%m%d}
     price: Optional[float] = None   # 진입가 (submit_order 이후 채워짐)
-    order_id: Optional[str] = None  # 고유 주문 ID = {ticker}_{%Y%m%d}
     
     
 @dataclass

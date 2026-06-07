@@ -121,9 +121,11 @@ class LSTMModel:
         contrib: dict = {}
         if self._attribute:
             x.requires_grad_(True)
+            self._model.train()         # backward를 위해 train 모드로 임시 변환
             logits = self._model(x)
             self._model.zero_grad(set_to_none=True)
             logits[0, cls].backward()
+            self._model.eval()          # 즉시 eval로 복귀
             # 아래 x.grad가 None인 경우 Pylance 오류 때문에 추가
             assert x.grad is not None, msg.training.not_compute_gradient
             saliency = (x.grad[0].abs() * x[0].abs()).sum(dim=0)

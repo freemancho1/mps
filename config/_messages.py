@@ -5,6 +5,8 @@ from mps.core.libs import call_function as CF
 tm = DictDot(           # train_model
     title               = "MPS Phase-2 모델 학습",
     info                = lambda t, s, e: CF(f"모델 학습 대상 종목: {t}, 기간: {s}~{e}"),
+    result_title        = lambda r: CF(f"학습 결과: 총 {len(r)}개 보고서"),
+    result              = lambda i, r: CF(f" - [{i:>2d}] {r}"),
 )
 
 bt = DictDot(           # BackTest
@@ -44,6 +46,15 @@ training = DictDot(
         dataset_size    = lambda ds: f"학습 샘플 부족: {len(ds)}개 (최소 10개 필요)",
     ),
 )
+
+model = DictDot(
+    n = DictDot(        # Numeric
+        phase_err       = lambda p, pt: CF(f"Phase{p} 요청이나 학습모델 정보({pt})가 없어 ThresholdModel로 폴백"),
+    ),
+    p = DictDot(        # Pattern
+        phase_err       = lambda p, pt: CF(f"Phase{p} 요청이나 학습모델 정보({pt})가 없어 RuleBasedPatternEngine으로 폴백"),
+    ),
+)
     
 trade = DictDot(
     bt = DictDot(       # BackTest
@@ -51,7 +62,7 @@ trade = DictDot(
         wf_skip_err     = lambda m: CF(f"--- skip window in walk-forward: {m}"),
         sim_info        = lambda b: CF(f"시뮬레이터 실행 정보: 윈도우 크기(시작일:{b[0].timestamp.date()} ~ 종료일:{b[-1].timestamp.date()}, {len(b)}개)"),
         sim_skip_err    = lambda bs, lbs: f"시뮬레이터 입력 데이터 크기({len(bs)})가 기준값({lbs}) 보다 적습니다.",
-        sim_result      = lambda sum: CF(f"시뮬레이터 실행 결과:\n{sum}"),
+        sim_result      = lambda sum: CF(f"시뮬레이터 실행 결과: {sum}"),
         normal_skip_err = lambda bs, ws: f"정규화 입력 데이터 크기({len(bs)})가 기준값({ws}) 보다 적습니다.",
     ),
     o = DictDot(        # observability

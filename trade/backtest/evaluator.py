@@ -42,5 +42,68 @@ class PerformanceEvaluator:
         TradeRecord 리스트를 받아 PerformanceReport 반환
         - 거래 정보가 없으면 모든 지표가 0인 빈 보고서 반환.
         """
-        # TODO X: 추후 PerformanceEvaluator가 필요할 때 구현
-        pass
+        if not trades:
+            return PerformanceReport(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        
+        # ── 거래당 순 수익률 계산 ──────────
+        results = []
+        for trade in trades:
+            if trade.direction == cfg.key.BUY:
+                # BUY: (청산가 - 진입가) / 진입가
+                result = (trade.exit_price - trade.entry_price) / trade.entry_price
+            else:
+                # SELL: (진입가 - 청산가) /진입가
+                result = (trade.entry_price - trade.exit_price) / trade.entry_price
+            # 비용 차감: 비용 / 진입가 → 비율로 환산
+            # 1e-8: entry_price * quantity = 0인 엣지 케이스 방지
+            result -= trade.cost / (trade.entry_price * trade.quantity + cfg.run.zero)
+            results.append(result)
+
+        result_arr = np.array(results)
+        wins_arr = result_arr[result_arr > 0]       # 수익 거래 수익률 배열
+        losses_arr = result_arr[result_arr <= 0]    # 손실 거래 수익률 배열 (본전 포함)
+
+        # ── 기본 통계 ───────────────
+        win_rate = len(wins_arr) / len(result_arr)
+        # profit_factor: 총 수익 / 총 손실 절대값
+        # 아래 설명과 도출 절차에 대해서는 나중에 설명을 들어봐야겠음.
+        # ─ losses가 없으면 inf (모든 거래가 수익?) → 너무 좋으면 오히려 의심 필요
+        # ─ losses_arr는 np.ndarray이며, 원소가 2개 이상이면 value error.
+        #    → 손실 거래가 하나라도 있으면 ProfitFactor 계산, 아니면 inf
+        profit_factor = (
+            float(wins_arr.sum()) / float(-losses_arr.sum() + cfg.run.zero)
+                if losses_arr.size else np.inf
+        )
+        result_total = float(result_arr.sum())  # 단순 수익률 합 (복리 아니며 대략적인 지표임)
+        result_avg = float(result_arr.mean())   # 거래당 평균 순 수익률
+
+        # ── 샤프 비율 (역환산) ──────────
+        # 거래당 수익률 계산 ─ 하루 390개 분봉 * 연 242 거래일(25년 기준)
+        sharpe = float(
+            result_arr.mean() / (result_arr.std() + cfg.run.zero)
+            * np.sqrt(cfg.run.days_per_year * cfg.run.minutes_per_day)  # 242봉 * 390봉
+        )
+
+        # ── 최대 낙폭 (누적 수익률 계산) ──────
+        # 1. 누적 수익률 계산: 각 거래 후 자산 변화를 곱으로 표현
+        cumulative_return = np.cumprod(1 + result_arr)
+        # 2. 누적 고점: 각 시점까지의 최대값
+        peak = np.maximum.accumulate(cumulative_return)
+        # 3. 낙폭 ─ (현재 - 고점) / 고점 (음수이며 클수록 나쁨)
+        drawdown = (cumulative_return - peak) / (peak + cfg.run.zero)
+        # 4. 최대 낙폭
+        max_drawdown = float(drawdown.min())
+
+        # ── 전체 사용된 비용(수수료 함) ──────
+        total_cost = sum(trade.cost for trade in trades)
+
+        return PerformanceReport(
+            total_trades=len(trades),
+            win_rate=win_rate,
+            profit_factor=profit_factor,
+            max_drawdown=max_drawdown,
+            sharpe_ratio=sharpe,
+            total_return_pct=result_total,
+            avg_return_per_trade_pct=result_avg,
+            total_cost=total_cost
+        )

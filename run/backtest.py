@@ -39,13 +39,12 @@ def main():
     # ── Walk-Forward 검증 ───────────────────
     validator = WalkForwardValidator(test_days=test_days, capital=capital)
     reports: list[PerformanceReport] = validator.run(bars)
-    # TODO 0: Simulator 작업 후 계속
+    
+    print(msg.tm.result_title(reports))
+    for idx, report in enumerate(reports, 1):
+        print(msg.tm.result(idx, report))
 
     print(msg.bt.processing_time(start_dt, datetime.now()))
-
-
-
-
 
 def parse_args():
     p = argparse.ArgumentParser(description=msg.bt.title)

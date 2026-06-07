@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import os 
 import math 
+import torch
 from pathlib import Path 
 from datetime import time 
 from zoneinfo import ZoneInfo 
 from dataclasses import dataclass, field, asdict
 
-from mps.core.types import Direction, BSDirection
+from mps.core.types import Direction, BSDirection, PatternSource
+from mps.core.types import OrderType, OrderStatus, ExitHoldReason
 
 
 @dataclass 
@@ -20,7 +22,7 @@ class _RunConfig:
     test_days: int              = 10                    # walk_forward의 테스트 윈도우 일자(2주)
     
     # Model Training Config
-    torch_device: str           = "cuda"
+    torch_device: str           = "cuda" if torch.cuda.is_available() else "cpu"
     numeric_track: str          = "numeric"
     pattern_track: str          = "pattern"
                                                         # 방향성 없음
@@ -37,7 +39,7 @@ class _RunConfig:
     force_data_refresh: bool    = False                 # 강제로 데이터 읽어오기: 읽어오지 않음(Fasle)
 
     # 일자 정보
-    days_per_year: int          = 252                   # 임의로 잡은 날짜이고, krx에서 실 거래일자만 가져옴(25년도 242일)
+    days_per_year: int          = 242                   # 임의로 잡은 날짜이고, krx에서 실 거래일자만 가져옴(25년도 242일)
     minutes_per_day: int        = 60 * 6 + 30           # 09:00 ~ 15:30 = 390분
     bars_per_day: int           = field(init=False)     # (분봉 기준이니) minutes_per_day와 같은 값 
     force_close_minutes: int    = 15                    # 강제 종료 시간
@@ -66,6 +68,8 @@ class _RunConfig:
     # 결합 정보
     numeric_cw: float           = 0.5                   # numeric combined weight
     pattern_cw: float           = 0.5                   # pattern combined weight
+
+    pc: _PatternConfidence      = field(init=False)
 
     # 비용 정보
     commission_rate: float      = 0.00015               # 거래 비용(증권사별로 다름: 0.015%)
@@ -102,6 +106,14 @@ class _RunConfig:
         self.open_time = time(int(self.open_time_str[:2]), int(self.open_time_str[3:]))
         self.close_time = time(int(self.close_time_str[:2]), int(self.close_time_str[3:]))
         self.bars_per_day = self.minutes_per_day
+
+
+@dataclass 
+class _PatternConfidence:
+    single_peak: float          = 0.6       # 단봉
+    double_peak: float          = 0.7       # 이중봉
+    triple_peak: float          = 0.75      # 삼봉
+    chart: float                = 0.65      # 차트
 
 
 @dataclass 
@@ -203,7 +215,7 @@ class _KeyConfig:               # 알파벳 순
     feature: str                = "feature"
     
     high: str                   = "high"
-    HOLD: Direction | BSDirection = "HOLD"
+    HOLD: Direction | BSDirection | ExitHoldReason = "HOLD"
     
     low: str                    = "low"
     
@@ -240,12 +252,22 @@ class _KeyConfig:               # 알파벳 순
 @dataclass 
 class _StrConfig: 
     bearish_engulfing: str      = "BEARISH_ENGULFING"
-    box_breakout: str           = "BOX_BREAKOUT"
+    box_breakout_down: str      = "BOX_BREAKOUT_DOWN"
+    box_breakout_up: str        = "BOX_BREAKOUT_UP"
     bullish_engulfing: str      = "BULLISH_ENGULFING"
+    cancelled: OrderStatus      = "CANCELLED"
     evening_star: str           = "EVENING_STAR"
+    filled: OrderStatus         = "FILLED"
+    force_close: ExitHoldReason = "FORCE_CLOSE"
     hammer: str                 = "HAMMER"
+    hold: ExitHoldReason        = "HOLD"
+    market: OrderType           = "MARKET"
     morning_star: str           = "MORNING_STAR"
+    rule: PatternSource         = "RULE"
     shooting_star: str          = "SHOOTING_STAR"
+    stop_loss: ExitHoldReason   = "STOP_LOSS"
+    take_profit: ExitHoldReason = "TAKE_PROFIT"
+    time_out: ExitHoldReason     = "TIME_OUT"
     
 
 @dataclass 
@@ -300,6 +322,7 @@ class _Config:
             self.key.ret_1, self.key.ret_5, self.key.ret_20,
         ]
         self.run.feature_idx = {name: idx for idx, name in enumerate(self.run.feature_names)}
+        self.run.pc = _PatternConfidence()
         
         self.train.seed = self.run.seed
         self.train.device = self.run.torch_device

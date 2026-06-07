@@ -94,7 +94,7 @@ class CNN1DPatternModel:
     
     @property 
     def is_trained(self) -> bool:
-        return self._trained
+        return self._trained 
     
     def predict(self, inp: PatternInput) -> tuple[Direction, float]:
         x = torch.from_numpy(np.ascontiguousarray(inp.ohlcv_series)).float()
@@ -122,7 +122,7 @@ class CNN1DPatternModel:
 
         return PatternSignal(
             ticker=inp.ticker,
-            timestampe=inp.timestamp,
+            timestamp=inp.timestamp,
             direction=direction,
             confidence=confidence,
             pattern_name="cnn_seq",

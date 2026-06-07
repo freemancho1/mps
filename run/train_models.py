@@ -19,7 +19,6 @@ import torch
 from datetime import datetime
 from pathlib import Path
 
-from models.registry import save_checkpoint
 from mps.pp.dataio.store import LocalParquetStore
 from mps.pp.dataio.loader import HistoricalDataLoader
 from mps.pp.features.labeler import TripleBarrierLabeler
@@ -27,6 +26,7 @@ from mps.pp.features.dataset import TripleBarrierDataset
 from mps.models.numeric.lstm import LSTMNet
 from mps.models.pattern.cnn import CNN1DNet
 from mps.models.trainer import ModelTrainer
+from mps.models.registry import save_checkpoint
 from mps.config import cfg, msg
 from mps.core.types import Bar
 

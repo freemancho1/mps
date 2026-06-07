@@ -16,4 +16,40 @@
 """
 from __future__ import annotations
 
-# TODO 2: phase-1 단계 모델 구현 후 (ThresholdModel, RuleBasedPatternEngine)
+from typing import Optional 
+
+from mps.config import cfg, msg 
+from mps.core.ports import NumericModelPort, PatternModelPort
+from mps.models.numeric.threshold import ThresholdModel
+from mps.models.pattern.rules import RuleBasedPatternEngine
+
+
+def build_numeric_model(phase: Optional[int] = None) -> NumericModelPort:
+    phase = cfg.run.phase if phase is None else phase 
+    if phase > 1:
+        # 지연 임포트: torch 의존성을 Phase-1 경로에 강제하지 않음.
+        from mps.models.numeric.lstm import LSTMModel
+
+        if cfg.model.lstm_model_fpath.exists():
+            model = LSTMModel(weights_path=cfg.model.lstm_model_fpath)
+            if model.is_trained:
+                return model 
+            
+        print(msg.model.n.phase_err(phase, cfg.model.lstm_model_fpath))
+
+    return ThresholdModel()
+
+
+def build_pattern_model(phase: Optional[int] = None) -> PatternModelPort:
+    phase = cfg.run.phase if phase is None else phase 
+    if phase > 1:
+        from mps.models.pattern.cnn import CNN1DPatternModel
+
+        if cfg.model.cnn_model_fpath.exists():
+            model = CNN1DPatternModel(weights_path=cfg.model.cnn_model_fpath)
+            if model.is_trained:
+                return model 
+            
+        print(msg.model.p.phase_err(phase, cfg.model.cnn_model_fpath))
+
+    return RuleBasedPatternEngine()

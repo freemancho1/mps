@@ -50,6 +50,9 @@ class NumericModelPort(Protocol):
 
 
 @runtime_checkable
-class PatternModelPort(Protocol):
-    """ 패턴 트랙 모델 인터페이스 (Rule/CNN/Vision 공통) """
-    def run(self, inp: "PatternInput") -> "PatternSignal": ...
+class PatternModelPort(Protocol): 
+    """ 
+    패턴 트랙 모델 인터페이스 (Rule/CNN/Vision 공통) 
+    → 2단계 CNN부터는 "bars: list[Bar]" 부분을 사용하지 않지만 호환성을 위해 정의해둠.
+    """
+    def run(self, inp: "PatternInput", bars: list[Bar]) -> "PatternSignal": ...
