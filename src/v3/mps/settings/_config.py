@@ -30,6 +30,7 @@ class _RunConfig:
 
 @dataclass(frozen=True)
 class _SystemConfig:
+    name                    : str           = "MPS"
     phase                   : int           = 2
     version                 : str           = "v3"
     
@@ -134,19 +135,6 @@ class _TrainConfig:
 
     # 하이퍼파라메터
     hyper                   : _HyperparameterConfig = field(default_factory=_HyperparameterConfig)
-
-
-# ── FreeLogger를 위한 자체 설정파일 ────────────────
-
-@dataclass
-class FreeLoggerConfig:
-    name                    : str           = "MPS"
-    
-    out_device_file         : str           = "file"
-    out_device_screen       : str           = "screen"
-    out_device              : str           = out_device_file
-    
-    
 
 
 # ── 전역 싱글톤 설정 ──────────────────

@@ -35,3 +35,4 @@ mplfinance
 python-dateutil
 pytz
 tqdm
+colorama

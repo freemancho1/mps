@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /home/freeman/projects/mps/src/v3
+python -m mps.core.utils._logger._viewer "$@"
