@@ -26,8 +26,9 @@ python scripts/train_models.py  --ticker 005930 --start 20250101 --end 20251231
 
 ## 패키지 구조 
 #### 소스 코드: src/버전 번호(v1)/프로젝트 명(mps)/
-* `core/`: 설정·메시지·타입·인터페이스(port)·유틸리티 ─ 공통부
-* `data/`: 분봉 수집·저장(loader·store) + 피처 파이프라인(features) ─ 거래·훈련 공통 데이터 계층
+* `settings/`: 변수·메시지·상수 설정 ─ 설정부
+* `core/`: 타입·인터페이스(port)·유틸리티 ─ 공통부
+* `pp/`: 분봉 수집·저장(loader·store) + 피처 파이프라인(features) ─ 거래·훈련 공통 데이터 계층
 * `modeling/`: 트랙별 모델(numeric·pattern) + 학습·레지스트리·팩토리 관리 ─ 모델 학습부
 * `trading/`: 신호 결합·리스크, 집행·관측·백테스트 ─ 거래부 
 
