@@ -23,6 +23,7 @@ from typing import cast, Any, Optional
 
 from mps.settings import cfg, msg 
 from mps.core.types import Bar
+from mps.core.utils import logger
 
 
 class LocalParquetStore:
@@ -47,7 +48,7 @@ class LocalParquetStore:
         """
         store_path = self._gen_store_path(ticker)
         if not store_path.exists():
-            print(msg.pp.store.file_not_found(store_path))
+            logger.error(msg.pp.store.file_not_found(store_path))
             return []
         
         # TODO 1: logger 작업 후

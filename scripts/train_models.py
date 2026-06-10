@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 
 from mps.settings import cfg, msg
+from mps.core.utils import logger
 
 
 def main() -> None:
@@ -27,7 +28,7 @@ def main() -> None:
     p.add_argument(cfg.key.start, default=cfg.run.start_date_str)
     p.add_argument(cfg.key.end, default=cfg.run.end_date_str)
     args = p.parse_args()
-    print(msg.training.info(msg.training.title, args.ticker, args.start, args.end))
+    logger.info(msg.training.info(msg.training.title, args.ticker, args.start, args.end))
     
     # TODO 0: LocalParquetStore 작업 후
     
