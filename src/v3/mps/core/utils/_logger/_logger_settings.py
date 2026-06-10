@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Pattern
 from colorama import Fore, Style
 
-from mps.settings import cfg
+from mps.config import cfg
 from mps.core.utils import DictDot
 
 

@@ -18,7 +18,7 @@ import torch
 from datetime import datetime 
 from pathlib import Path
 
-from mps.settings import cfg, msg
+from mps.config import cfg, msg
 from mps.core.utils import logger
 
 

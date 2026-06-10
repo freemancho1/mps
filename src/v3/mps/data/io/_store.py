@@ -21,7 +21,7 @@ from pathlib import Path
 from datetime import datetime 
 from typing import cast, Any, Optional
 
-from mps.settings import cfg, msg 
+from mps.config import cfg, msg 
 from mps.core.types import Bar
 from mps.core.utils import logger
 
