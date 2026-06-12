@@ -1,7 +1,7 @@
 import logging 
 from pathlib import Path 
 
-from ._logger_settings import config as cfg 
+from ._settings import log_config as cfg
 
 
 logger = logging.getLogger(cfg.name.upper())

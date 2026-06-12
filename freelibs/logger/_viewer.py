@@ -6,9 +6,10 @@ import argparse
 from colorama import init, Style
 from pathlib import Path
 
-from ._logger_settings import config as cfg
-from ._logger_settings import messages as msg
-
+# from mps.freelibs.logger import cfg
+# from mps.freelibs.logger import msg
+from ._settings import log_config as cfg 
+from ._settings import log_messages as msg
 
 
 # colorama 초기화 ─ Window 환경에서 색상 출력을 위해 필요

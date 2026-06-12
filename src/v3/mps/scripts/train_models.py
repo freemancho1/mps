@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 
 from mps.config import cfg, msg
-from mps.core.utils import logger
+from mps.freelibs import logger
 
 
 def main() -> None:
@@ -28,9 +28,12 @@ def main() -> None:
     p.add_argument(cfg.key.start, default=cfg.run.start_date_str)
     p.add_argument(cfg.key.end, default=cfg.run.end_date_str)
     args = p.parse_args()
-    logger.info(msg.training.info(msg.training.title, args.ticker, args.start, args.end))
+    logger.debug(msg.training.info(msg.training.title, args.ticker, args.start, args.end))
     
     # TODO 0: LocalParquetStore 작업 후
+
+def test() -> None:
+    print("My test...")
     
 
 if __name__ == "__main__":

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# ~/projects/mps/run
+# 사용법:
+#   run <script.py>          → 기본 버전(v3)으로 실행
+#   run <script.py> v4       → 지정 버전으로 실행
+
+SCRIPT=$1
+VERSION=${2:-v3}                          # 기본값 v3
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_PATH="$PROJECT_ROOT/src/$VERSION/mps/scripts/$SCRIPT"
+
+# 입력 검증
+if [ -z "$SCRIPT" ]; then
+    echo "사용법: run <script.py> [버전]"
+    echo "예시:   run train_model.py"
+    echo "예시:   run train_model.py v4"
+    exit 1
+fi
+
+if [ ! -f "$SCRIPT_PATH" ]; then
+    echo "오류: 파일을 찾을 수 없습니다 → $SCRIPT_PATH"
+    exit 1
+fi
+
+# echo "실행: python $SCRIPT_PATH"
+cd "$PROJECT_ROOT"
+python "$SCRIPT_PATH"

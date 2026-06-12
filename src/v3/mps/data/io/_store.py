@@ -23,7 +23,8 @@ from typing import cast, Any, Optional
 
 from mps.config import cfg, msg 
 from mps.core.types import Bar
-from mps.core.utils import logger
+from mps.core.libs import to_float, to_int
+from mps.freelibs import logger
 
 
 class LocalParquetStore:
@@ -31,11 +32,9 @@ class LocalParquetStore:
     def __init__(self, base_dir: Optional[Path] = None) -> None:
         self._base_dir = base_dir or cfg.path.store 
         
-    def _gen_store_path(self, ticker: str) -> Path:
-        # 종목별로 별도의 디렉토리에 저장
-        ticker_dir = self._base_dir / ticker 
-        ticker_dir.mkdir(parents=True, exist_ok=True)
-        file_path = ticker_dir / cfg.path.store_fname
+    def _gen_store_fpath(self, ticker: str) -> Path:
+        # 종목별로 별도의 파일에 저장
+        file_path = self._base_dir / f"{ticker}_{cfg.path.store_fname}"
         return file_path
     
     def load_bars(self, ticker: str, start: datetime, end: datetime) -> list[Bar]:
@@ -46,11 +45,54 @@ class LocalParquetStore:
         - timestamp 마스킹으로 불필요한 메모리 사용 줄임
         - 반환된 Bar들은 모두 is_complete=True ─ 저장 시점에 완성된 봉만 사용
         """
-        store_path = self._gen_store_path(ticker)
-        if not store_path.exists():
-            logger.error(msg.pp.store.file_not_found(store_path))
+        store_fpath = self._gen_store_fpath(ticker)
+        if not store_fpath.exists():
+            logger.error(msg.pp.store.file_not_found(store_fpath))
             return []
         
-        # TODO 1: logger 작업 후
-        return []
+        df = pd.read_parquet(store_fpath)
+        df.index = pd.to_datetime(df.index)
+        mask = (df.index >= pd.Timestamp(start)) & (df.index <= pd.Timestamp(end))
+        sub_df = df.loc[mask]
+        logger.debug(msg.pp.store.load_store_info(sub_df))
+
+        result: list[Bar] = []
+        for iter in sub_df.itertuples():
+            result.append(Bar(
+                ticker=ticker,
+                timestamp=cast(pd.Timestamp, iter.Index).to_pydatetime(),
+                open=to_float(iter.open),
+                high=to_float(iter.high),
+                low=to_float(iter.low),
+                close=to_float(iter.close),
+                volume=to_int(iter.volume),
+                is_complete=True
+            ))
+
+        return result
         
+    def save_bars(self, bars: list[Bar]) -> None:
+        """ 
+        Bar 리스트를 parquet 파일로 저장
+
+        [데이터 저장 원칙]
+          - 종목당 각각 파일을 작성하며, 동일 timestamp 데이터는 새 데이터로 갱신
+            → 재수집 시 최신 데이터로 업데이트
+        """
+        if not bars: 
+            return 
+        
+        # Bar dataclass → Dataframe (필드명 그대로 컬럼이 됨)
+        df = pd.DataFrame([vars(bar) for bar in bars])
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df.set_index("timestamp").sort_index()
+
+        ticker = bars[0].ticker
+        store_fpath = self._gen_store_fpath(ticker)
+        if store_fpath.exists():
+            old_df = pd.read_parquet(store_fpath)
+            combined_df = pd.concat([old_df, df])
+            combined_df = combined_df[~combined_df.index.duplicated(keep="last")].sort_index()
+            combined_df.to_parquet(store_fpath)
+        else:
+            df.to_parquet(store_fpath)

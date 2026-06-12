@@ -20,12 +20,34 @@ pip install -e .
 
 ## 실행
 ```bash
-python scripts/run_backtest.py  --ticker 005930 --start 20250101 --end 20251231
+cd ~/projects/mps
+conda activate mpsdev
+
+# 간략 스크립트 실행 (버전을 입력하지 않으면 기본값 v3임)
+./run train_models.py 
+./run train_models.py v3
+./run backtest.py v4
+
+# 정상적인 방법
+cd src/v3/mps
+python scripts/backtest.py  --ticker 005930 --start 20250101 --end 20251231
 python scripts/train_models.py  --ticker 005930 --start 20250101 --end 20251231
+
+# 모니터링
+cd ~/projects/mps
+./monitoring
 ```
 
 ## 패키지 구조 
-#### 소스 코드: src/버전 번호(v1)/프로젝트 명(mps)/ 
+
+### mps
+#### document:: docs ─ mps.docs
+* `documents/`: 프로젝트 설계 원칙·의사결정은 design-philosophy.ipynb 참조
+#### 공통 소스코드:: common ─ mps.freelibs
+* `logger/`: 로그 처리
+
+### mps/src/v?
+#### source:: mps ─ msp/src/v3/mps
 * `config/`: 변수·메시지·상수 설정 ─ 설정부
 * `core/`: 타입·인터페이스(port)·유틸리티 ─ 공통부
 * `data/`: 분봉 수집·저장(loader·store) + 피처 파이프라인(features) ─ 거래·훈련 공통 데이터 계층
@@ -34,8 +56,11 @@ python scripts/train_models.py  --ticker 005930 --start 20250101 --end 20251231
 * `execution/`: 실행
 * `backtest/`: 테스트
 * `observability/`: 관측
+* `test/`: 각종 개발관련 테스트
+* `scripts/`: 각종 실행 스크립트, train_models, backtest.py
 
-#### 기타 파일: 버전 밖에서 공통으로 사용하는 폴더
-* `artifacts/`: 런타임 산출물(로그·parquet·모델 가중치) ─ 시스템 출력부
-  * 파일 구조: artifacts/버전 번호(v1)/logs/ ...
-* `documents/`: 프로젝트 설계 원칙·의사결정은 design-philosophy.ipynb 참조
+#### artifacts:: artifacts ─ msp/src/v3/artifacts
+* `models/`: 모델 학습 결과 저장
+* `monitoring/`: 사용자 로그 저장
+* `output/`: 시스템이 관리하는 로그 저장(통계 작성용)
+* `store/`: 분봉 파일 저장용 폴더

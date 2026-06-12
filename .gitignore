@@ -2,6 +2,7 @@
 # Application Data
 # ─────────────
 artifacts/
+logs/
 
 # ─────────────
 # pip install -e . 설정파일

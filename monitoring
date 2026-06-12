@@ -1,0 +1,3 @@
+#!/bin/bash
+# cd /home/freeman/projects/mps
+python -m mps.freelibs.logger._viewer
