@@ -57,15 +57,15 @@ class LocalParquetStore:
         logger.debug(msg.pp.store.load_store_info(sub_df))
 
         result: list[Bar] = []
-        for iter in sub_df.itertuples():
+        for row in sub_df.itertuples():
             result.append(Bar(
                 ticker=ticker,
-                timestamp=cast(pd.Timestamp, iter.Index).to_pydatetime(),
-                open=to_float(iter.open),
-                high=to_float(iter.high),
-                low=to_float(iter.low),
-                close=to_float(iter.close),
-                volume=to_int(iter.volume),
+                timestamp=cast(pd.Timestamp, row.Index).to_pydatetime(),
+                open=to_float(row.open),
+                high=to_float(row.high),
+                low=to_float(row.low),
+                close=to_float(row.close),
+                volume=to_int(row.volume),
                 is_complete=True
             ))
 
@@ -91,8 +91,7 @@ class LocalParquetStore:
         store_fpath = self._gen_store_fpath(ticker)
         if store_fpath.exists():
             old_df = pd.read_parquet(store_fpath)
-            combined_df = pd.concat([old_df, df])
-            combined_df = combined_df[~combined_df.index.duplicated(keep="last")].sort_index()
-            combined_df.to_parquet(store_fpath)
-        else:
-            df.to_parquet(store_fpath)
+            df = pd.concat([old_df, df])
+            df = df[~df.index.duplicated(keep="last")].sort_index()
+        df.to_parquet(store_fpath)
+        logger.debug(msg.pp.store.save_result(ticker, df))

@@ -19,7 +19,32 @@ from datetime import datetime
 from pathlib import Path
 
 from mps.config import cfg, msg
+from mps.core.types import Bar
+from mps.data.io import LocalParquetStore, HistoricalDataLoader
+from mps.data.features import TripleBarrierLabeler, TripleBarrierDataset
+from mps.models.numeric.lstm import LSTMNet
 from mps.freelibs import logger
+
+
+def load_bars(ticker: str, start: str, end: str) -> list[Bar]:
+    start_date = datetime.strptime(start, cfg.sys.date_format).date()
+    end_date = datetime.strptime(end, cfg.sys.date_format).date()
+    # logger.debug(msg.training.load_data_info(ticker, start_date, end_date))
+
+    store = LocalParquetStore()
+    loader = HistoricalDataLoader(store=store)
+
+    _, bars = loader.load(ticker, start_date, end_date)
+    return bars
+
+def train_track(bars: list[Bar], track: str, model: torch.nn.Module, save_path: Path) -> None:
+    logger.debug(msg.training.model_info(track, model))
+    labeler = TripleBarrierLabeler()
+    dataset = TripleBarrierDataset(bars, track, labeler=labeler)
+    dist = dict(zip([cfg.str.buy, cfg.str.hold], dataset.class_counts().tolist()))
+    logger.debug(msg.pp.features.dataset_result(dataset, dist))
+
+    # TODO 0614-1736: ModelTrainer() 작업 후
 
 
 def main() -> None:
@@ -30,11 +55,20 @@ def main() -> None:
     args = p.parse_args()
     logger.debug(msg.training.info(msg.training.title, args.ticker, args.start, args.end))
     
-    # TODO 0: LocalParquetStore 작업 후
+    bars = load_bars(args.ticker, args.start, args.end)
 
-def test() -> None:
-    print("My test...")
-    
+    logger.debug(msg.training.start)
+    start_datetime = datetime.now()
+
+    train_track(
+        bars=bars,
+        track=cfg.model.numeric_track,
+        model=LSTMNet(**cfg.train.lstm_settings.to_dict()),
+        save_path=cfg.path.lstm_model_fpath
+    )
+
+    logger.debug(msg.training.finished(datetime.now() - start_datetime))
+
 
 if __name__ == "__main__":
     main()
