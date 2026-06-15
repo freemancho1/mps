@@ -6,7 +6,6 @@ from typing import Literal
 from mps.core.types import ExitHoldReason
 from mps.core.types import OrderAction, OrderStatus, OrderType
 from mps.core.types import PatternSource
-from mps.core.types import SignalDirection
 
 
 @dataclass(frozen=True)
@@ -23,8 +22,12 @@ class _KeyValues:
     capital                 : str = "--capital"
     class_counts            : str = "class_counts"
     close                   : str = "close"
+    cpu                     : str = "cpu"
+    cuda                    : str = "cuda"
 
     end                     : str = "--end"
+    
+    gpu                     : str = "gpu"
     
     high                    : str = "high"
     
@@ -33,9 +36,14 @@ class _KeyValues:
     macd                    : str = "macd"
     macd_diff               : str = "macd_diff"
     macd_signal             : str = "macd_signal"
+    meta                    : str = "meta"
+    
+    numeric                 : str = "numeric"
     
     obv                     : str = "obv"
     open                    : str = "open"
+    
+    pattern                 : str = "pattern"
     
     ret_1                   : str = "ret_1"
     ret_20                  : str = "ret_20"

@@ -22,7 +22,9 @@ from mps.config import cfg, msg
 from mps.core.types import Bar
 from mps.data.io import LocalParquetStore, HistoricalDataLoader
 from mps.data.features import TripleBarrierLabeler, TripleBarrierDataset
-from mps.models.numeric.lstm import LSTMNet
+from mps.model.numeric.lstm import LSTMNet
+from mps.model.trainer import ModelTrainer
+from mps.model.registry import save_checkpoint
 from mps.freelibs import logger
 
 
@@ -44,8 +46,21 @@ def train_track(bars: list[Bar], track: str, model: torch.nn.Module, save_path: 
     dist = dict(zip([cfg.str.buy, cfg.str.hold], dataset.class_counts().tolist()))
     logger.debug(msg.pp.features.dataset_result(dataset, dist))
 
-    # TODO 0614-1736: ModelTrainer() 작업 후
-
+    trainer = ModelTrainer()
+    model, history = trainer.train(model, dataset)
+    
+    meta = {
+        "track": track,
+        "seed": cfg.sys.seed,
+        "arch": model.__class__.__name__, 
+        "label_dist": dist, 
+        "best_val_loss": round(history.val_loss[history.best_epoch], 5),
+        "best_val_acc": round(history.val_acc[history.best_epoch], 5),
+        "take_profit": cfg.trade.barrier.take_profit,
+        "stop_loss": cfg.trade.barrier.stop_loss,
+        "time_horizon": cfg.trade.barrier.time_horizon,
+    }
+    path = save_checkpoint(model, save_path, meta)
 
 def main() -> None:
     p = argparse.ArgumentParser(description=msg.training.title)
@@ -66,6 +81,8 @@ def main() -> None:
         model=LSTMNet(**cfg.train.lstm_settings.to_dict()),
         save_path=cfg.path.lstm_model_fpath
     )
+    
+    # TODO 0615-1612: CNN1DNet 작업 후
 
     logger.debug(msg.training.finished(datetime.now() - start_datetime))
 

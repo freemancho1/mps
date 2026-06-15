@@ -57,10 +57,10 @@ class LSTMNet(torch.nn.Module):
             torch.nn.Linear(hidden_size // 2, num_classes),
         )
 
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
-            out, _ = self.lstm(x)       # [B, N, hidden]
-            last = out[:, -1, :]        # 마지막 타임스텝
-            return self.head(last)      # [B, num_classes]
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out, _ = self.lstm(x)       # [B, N, hidden]
+        last = out[:, -1, :]        # 마지막 타임스텝
+        return self.head(last)      # [B, num_classes]
 
 
 class LSTMModel:

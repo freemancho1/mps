@@ -166,6 +166,6 @@ class TrainHistory:
     train_loss          : list[float]   = field(default_factory=list)
     val_loss            : list[float]   = field(default_factory=list)
     val_acc             : list[float]   = field(default_factory=list)
-    best_epoch          : int           = int("inf")
+    best_epoch          : int           = -1
     best_val_loss       : float         = float("inf")
 

@@ -291,12 +291,20 @@ class _SignalConfig:
     no_signal_numeric       : tuple[SignalDirection, float, dict] = field(
                                                 default_factory=lambda: ("HOLD", 0.0, {})
                                             )
-    no_signal_pattern       : tuple[SignalDirection, float, str] = field(
-                                                default_factory=lambda: ("HOLD", 0.0, "none")
-                                            )
+    no_signal_pattern       : tuple[SignalDirection, float, str] = ("HOLD", 0.0, "none")
     
 
-@dataclass 
+@dataclass(frozen=True)
+class _PatternConfig:
+    single_confidence       : float         = 0.6       # 단봉
+    double_confidence       : float         = 0.7       # 이중봉
+    triple_confidence       : float         = 0.75      # 삼봉
+    chart_confidence        : float         = 0.65      # 차트
+    
+    chart_min_size          : int           = 21
+    
+
+@dataclass(frozen=True)
 class _RiskConfig:
     max_capital_pct         : float         = 0.1       # 1회 투입 상한 = 초기 자본의 10%
 
@@ -329,6 +337,7 @@ class _TradeConfig:
     cost                    : _CostConfig   = field(default_factory=_CostConfig)
     signal                  : _SignalConfig = field(default_factory=_SignalConfig)
     rist                    : _RiskConfig   = field(default_factory=_RiskConfig)
+    pc                      : _PatternConfig= field(default_factory=_PatternConfig)
 
     @property 
     def breakeven_confidence(self) -> float:

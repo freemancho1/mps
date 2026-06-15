@@ -1,5 +1,6 @@
+from __future__ import annotations 
+
 from mps.freelibs import DictDot, call_function as CF
-from ._config import config as cfg
 
 
 pp = DictDot(               # Preprocessing
@@ -19,7 +20,7 @@ pp = DictDot(               # Preprocessing
 )
 
 training = DictDot(
-    title                   = f"MPS Phase-{cfg.sys.phase} 모델 학습",
+    title                   = f"MPS Phase-2 모델 학습",
     start                   = CF("학습 시작."),
     info                    = lambda title, ticker, s_dt, e_dt: CF(f"{title} 정보: 대상 종목 코드({ticker}), 학습 기간({s_dt} ~ {e_dt})"),
     model_info              = lambda t, m: CF(f"모델 학습 정보: {t} 트랙(모델명: {m.__class__.__name__})"),
@@ -28,6 +29,14 @@ training = DictDot(
     finished                = lambda t: CF(f"학습 완료. 처리 시간: {t}"),
     too_much_embargo        = lambda e, c: CF(f"엠바고용 데이터({e}개)가 너무 많습니다. {c}개로 조정햇습니다."),
     class_calibration       = lambda w: CF(f"클래스 보정 결과: {w}"),
+
+    epoch_result            = lambda e, h: CF(f" - epoch[{e:02}]: train-loss = {h.train_loss[-1]:.4f}, val-loss = {h.val_loss[-1]:.4f}, val-acc = {h.val_acc[-1]:.4f}"),
+    result                  = lambda m, h: CF(f"{m.__class__.__name__} 모델 학습 결과: val_loss={h.val_loss[h.best_epoch]:.4f}, val_acc={h.val_acc[h.best_epoch]:.4f}"),
+
+    # 저장·불러온 체크포인트 정보
+    save_ckpt_info          = lambda i, p: CF(f"저장된 체크포인트 정보: {i.keys()}, 저장 위치: {p}"),
+    load_ckpt_info          = lambda i, p: CF(f"불러온 체크포인트 정보: {i.keys()}, 저장 위치: {p}"),
+    
     err = DictDot(
         not_len_func        = lambda ds: f"{ds.__class__.__name__} 오브젝트가 '__len__()' 메서드를 구현하지 않았습니다.",
         insufficient_data   = lambda ds: f"학습에 필요한 데이터가 너무 적습니다. 입력 데이터 크기: {len(ds)}개",

@@ -39,7 +39,7 @@ class TripleBarrierDataset(torch.utils.data.Dataset):
         self._labeler = labeler or TripleBarrierLabeler()
 
         labels = self._labeler.label(bars)
-        logger.info(msg.pp.features.dist_labels(self._labeler.label_distribution(labels)))
+        logger.debug(msg.pp.features.dist_labels(self._labeler.label_distribution(labels)))
         
         horizon = self._labeler.time_horizon
         bar_count = len(bars)
