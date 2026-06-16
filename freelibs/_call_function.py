@@ -10,6 +10,9 @@ def call_function(message: str) -> str:
     frame = inspect.stack()[2]
     location = f"{frame.filename}[{frame.lineno}]:"
     
-    SIZE = 25
+    SIZE: int = 25
     location = location[-SIZE:] if len(location) > SIZE else location.rjust(SIZE)
-    return f"{location} {message}"
+    
+    IS_LOC: bool = False 
+    location = f"{location} " if IS_LOC else ""
+    return f"{location}{message}"

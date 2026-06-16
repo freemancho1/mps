@@ -42,3 +42,17 @@ training = DictDot(
         insufficient_data   = lambda ds: f"학습에 필요한 데이터가 너무 적습니다. 입력 데이터 크기: {len(ds)}개",
     ),
 )
+
+bt = DictDot(               # BackTest
+    script_title            = f"MPS Phase-2 백테스트 실행 스크립트",
+    title                   = lambda a: CF(f"MPS Phase-2 백테스트 실행: 입력값={a}"),
+    result                  = lambda t: CF(f"MPS Phase-2 백테스트 종료: 전체 처리시간={t}"),
+    wf_info                 = lambda s: CF(f"WarkForward Validator 실행 정보: 훈련일자={s._train_days}일, 시험일자={s._test_days}일, 초기자본={s._capital:,.0f}원"),
+    wf_fold_info            = lambda f, tr, w, te: CF(f" - Fold[{f:03}]: train({tr[0]}~{tr[-1]}), warmup({w[0]}~{w[-1]}), test({te[0]}~{te[-1]})"),
+    wf_fold_train_result    = lambda m: CF(f"   = {m.__class__.__name__}, Result: {m.state_dict()}"),
+    
+    err = DictDot(
+        no_data             = CF("학습에 사용할 데이터가 존재하지 않습니다."),  
+        insufficient_data   = lambda e, f: CF(f"학습에 필요한 데이터가 충분하지 않아 이 폴드({f})는 건너뜀니다. [ERROR] {str(e)}"),
+    ),
+)

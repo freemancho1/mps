@@ -89,7 +89,7 @@ class ModelTrainer:
             history.val_loss.append(round(val_loss, 5))
             history.val_acc.append(round(val_acc, 4))
             
-            logger.debug(msg.training.epoch_result(epoch, history))
+            # logger.debug(msg.training.epoch_result(epoch, history))
             
             # ── 조기 종료 판정 ─────────────────────
             if val_loss < history.best_val_loss:

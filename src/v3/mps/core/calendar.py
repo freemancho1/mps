@@ -45,13 +45,13 @@ def force_close_dt(check_date: date, min_force: Optional[int] = None) -> datetim
 
 def trading_days(start_date: date, end_date: date) -> list[date]:
     """ 시작일과 종료일 사이 영업일 리스트 (시작·종료일 포함) """
-    result: list[date] = []
+    results: list[date] = []
     curr_date = start_date 
     while curr_date <= end_date:
         if is_trading_day(curr_date):
-            result.append(curr_date)
+            results.append(curr_date)
         curr_date += timedelta(days=1)
-    return result 
+    return results 
 
 def prev_trading_day(base_date: date) -> date:
     """ 기준일 기준 직전 영업일 반환 """

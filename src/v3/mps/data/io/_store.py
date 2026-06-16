@@ -56,9 +56,9 @@ class LocalParquetStore:
         sub_df = df.loc[mask]
         logger.debug(msg.pp.store.load_store_info(sub_df))
 
-        result: list[Bar] = []
+        results: list[Bar] = []
         for row in sub_df.itertuples():
-            result.append(Bar(
+            results.append(Bar(
                 ticker=ticker,
                 timestamp=cast(pd.Timestamp, row.Index).to_pydatetime(),
                 open=to_float(row.open),
@@ -69,7 +69,7 @@ class LocalParquetStore:
                 is_complete=True
             ))
 
-        return result
+        return results
         
     def save_bars(self, bars: list[Bar]) -> None:
         """ 

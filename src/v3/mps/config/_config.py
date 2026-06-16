@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from dataclasses import dataclass, field, asdict 
 
 from ._key_strings import _KeyValues, _StringValue
-from mps.core.types import SignalDirection
+from mps.core.types import SignalDirection, PatternName
 
 
 # ─────────────────────────────────────
@@ -28,6 +28,10 @@ class _RunConfig:
 
     # 초기 자본금
     init_capital            : float         = 10_000_000.0
+    
+    # 백테스트 관련 윈도우 정보
+    train_days              : int           = 30        # walk_forward 폴드별 학습 윈도우 일자
+    test_days               : int           = 10        # walk_forward 테스트 윈도우 크기(2주)
 
 
 # ─────────────────────────────────────
@@ -47,6 +51,7 @@ class _SystemConfig:
     timezone                : ZoneInfo      = field(default_factory=lambda: ZoneInfo("Asia/Seoul"))
     date_format             : str           = "%Y%m%d"
     time_format             : str           = "%H:%M:%S"
+    datetime_format         : str           = "%Y%m%d%H%M%S"
 
 
 @dataclass(frozen=True)
@@ -291,7 +296,7 @@ class _SignalConfig:
     no_signal_numeric       : tuple[SignalDirection, float, dict] = field(
                                                 default_factory=lambda: ("HOLD", 0.0, {})
                                             )
-    no_signal_pattern       : tuple[SignalDirection, float, str] = ("HOLD", 0.0, "none")
+    no_signal_pattern       : tuple[SignalDirection, float, PatternName] = ("HOLD", 0.0, "NONE")
     
 
 @dataclass(frozen=True)

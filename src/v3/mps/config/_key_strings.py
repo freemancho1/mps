@@ -3,9 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from mps.core.types import DataSource
 from mps.core.types import ExitHoldReason
 from mps.core.types import OrderAction, OrderStatus, OrderType
-from mps.core.types import PatternSource
+from mps.core.types import PatternSource, PatternName
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,9 @@ class _KeyValues:
     start                   : str = "--start"
     state_dict              : str = "state_dict"
     
+    test_days               : str = "--test_days"
     ticker                  : str = "--ticker"
+    train_days              : str = "--train_days"
     
     volume                  : str = "volume"
     volume_ratio            : str = "volume_ratio"
@@ -63,35 +66,39 @@ class _KeyValues:
 class _StringValue:
     # 알파벳 순
 
-    bearish_engulfing       : str = "BEARISH_ENGULFING"
-    box_breakout_down       : str = "BOX_BREAKOUT_DOWN"
-    box_breakout_up         : str = "BOX_BREAKOUT_UP"
-    bullish_engulfing       : str = "BULLISH_ENGULFING"
+    bearish_engulfing       : PatternName = "BEARISH_ENGULFING"
+    box_breakout_down       : PatternName = "BOX_BREAKOUT_DOWN"
+    box_breakout_up         : PatternName = "BOX_BREAKOUT_UP"
+    bullish_engulfing       : PatternName = "BULLISH_ENGULFING"
     buy                     : Literal["BUY"] = "BUY"
     
     cancelled               : OrderStatus = "CANCELLED"
+    cnn                     : PatternSource = "CNN"
+    cnn_seq                 : PatternName = "CNN_SEQ"               # cnn pattern_name
 
-    evening_star            : str = "EVENING_STAR"
+    evening_star            : PatternName = "EVENING_STAR"
 
     filled                  : OrderStatus = "FILLED"
     force_close             : ExitHoldReason = "FORCE_CLOSE"
 
-    hammer                  : str = "HAMMER"
+    hammer                  : PatternName = "HAMMER"
     hold                    : Literal["HOLD"] = "HOLD"
 
-    kis                     : str = "KIS"
+    kis                     : DataSource = "KIS"
 
     market                  : OrderType = "MARKET"
-    morning_star            : str = "MORNING_STAR"
+    morning_star            : PatternName = "MORNING_STAR"
 
-    pykrx                   : str = "PYKRX"
+    pykrx                   : DataSource = "PYKRX"
 
     rule                    : PatternSource = "RULE"
 
     sell                    : OrderAction = "SELL"
-    shooting_star           : str = "SHOOTING_STAR"
+    shooting_star           : PatternName = "SHOOTING_STAR"
     stop_loss               : ExitHoldReason = "STOP_LOSS"
-    store                   : str = "STORE"
+    store                   : DataSource = "STORE"
 
     take_profit             : ExitHoldReason = "TAKE_PROFIT"
     time_out                : ExitHoldReason = "TIME_OUT"
+    
+    vision                  : PatternSource = "VISION"

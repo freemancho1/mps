@@ -65,15 +65,15 @@ class TripleBarrierDataset(torch.utils.data.Dataset):
         feat = FeatureExtractor().extract(bars)
         n_features = feat.shape[1]  # 14
         
-        result: list = []
+        results: list = []
         for pit in range(start, end):
             window = feat[pit - self._lookback + 1 : pit + 1]
             mu = window.mean(axis=0)
             std = window.std(axis=0) + cfg.sys.zero
-            result.append(((window - mu) / std).astype(np.float32))
+            results.append(((window - mu) / std).astype(np.float32))
 
-        return np.stack(result) \
-                if result else np.empty((0, self._lookback, n_features), dtype=np.float32)
+        return np.stack(results) \
+                if results else np.empty((0, self._lookback, n_features), dtype=np.float32)
 
     def _build_pattern_window(self, bars: list[Bar], start: int, end: int) -> np.ndarray:
         """ 패턴 트랙 윈도우 생성 """
@@ -83,7 +83,7 @@ class TripleBarrierDataset(torch.utils.data.Dataset):
         )
         n_features = ohlcv.shape[1]
 
-        result: list = []
+        results: list = []
         for pit in range(start, end):
             window = ohlcv[pit - self._lookback + 1 : pit + 1]
 
@@ -95,10 +95,10 @@ class TripleBarrierDataset(torch.utils.data.Dataset):
                 prices_norm = (prices - prices_min) / (prices_max - prices_min)
             volume_norm = window[:, 4:5] / (window[:, 4:5].max() + cfg.sys.zero)
 
-            result.append(np.concatenate([prices_norm, volume_norm], axis=1).astype(np.float32))
+            results.append(np.concatenate([prices_norm, volume_norm], axis=1).astype(np.float32))
 
-        return np.stack(result) \
-            if result else np.empty((0, self._lookback, n_features), dtype=np.float32)
+        return np.stack(results) \
+            if results else np.empty((0, self._lookback, n_features), dtype=np.float32)
     
     def __len__(self) -> int:
         return len(self._y)

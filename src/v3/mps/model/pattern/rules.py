@@ -21,13 +21,14 @@ from __future__ import annotations
 
 import time 
 
-from mps.config import cfg, msg 
-from mps.core.types import Bar, SignalDirection, PatternInput, PatternSignal
+from mps.config import cfg
+from mps.core.types import Bar, PatternInput, PatternSignal
+from mps.core.types import SignalDirection, PatternName
 
 
 class RuleBasedPatternEngine:
     
-    def _detect(self, bars: list[Bar]) -> tuple[SignalDirection, float, str]:
+    def _detect(self, bars: list[Bar]) -> tuple[SignalDirection, float, PatternName]:
         """ 
         아래 우선순위 순(check_func)으로 패턴을 검사하고 첫 번째 매칭을 그대로 반환.
         - bars는 정규화하지 않은 원본 데이터 사용 (비율 계산에 필요함)
@@ -37,18 +38,38 @@ class RuleBasedPatternEngine:
         
         # v3부터는 "롱 온리" 형태로 "매수 패턴만 진입 신호로 사용".
         # → 하락 패턴인 유성형·약세장악·저녁별·하단돌파 형식은 매수 진입 근거가 아니므로 제외
-        # TODO 0615-1633 하단 함수 정의 후 수행
-        # check_func = [
-        #     self._hammer,
-        #     self._bullish_engulfing,
-        #     self._morning_star,
-        #     self._box_breakout
-        # ]
+        check_func = [
+            self._hammer,
+            self._bullish_engulfing,
+            self._morning_star,
+            self._box_breakout
+        ]
+        for func in check_func:
+            direction, confidence, pattern_name = func(bars)
+            if direction == cfg.str.buy:
+                return direction, confidence, pattern_name 
+            
+        return cfg.trade.signal.no_signal_pattern
+    
+    def run(self, inp: PatternInput, bars: list[Bar]) -> PatternSignal:
+        """ 패턴 감지 후 PatternSignal 반환. 지연시간 측정 포함 """
+        start_time = time.perf_counter()
+        direction, confidence, pattern_name = self._detect(bars)
+        latency_ms = (time.perf_counter() - start_time) * 1000
         
+        return PatternSignal(
+            ticker=inp.ticker, 
+            timestamp=inp.timestamp,
+            dir=direction,
+            confidence=confidence,
+            pattern_name=pattern_name,
+            source=cfg.str.rule,
+            latency_ms=latency_ms
+        )        
         
     # ── 체크 함수 정의 ───────────────────
     
-    def _hammer(self, bars: list[Bar]) -> tuple[SignalDirection, float, str]:
+    def _hammer(self, bars: list[Bar]) -> tuple[SignalDirection, float, PatternName]:
         """ 
         망치형 신호 ─ 하락 추세 후 반전 신호
         
@@ -68,7 +89,7 @@ class RuleBasedPatternEngine:
             return cfg.str.buy, cfg.trade.pc.single_confidence, cfg.str.hammer
         return cfg.trade.signal.no_signal_pattern
     
-    def _bullish_engulfing(self, bars: list[Bar]) -> tuple[SignalDirection, float, str]:
+    def _bullish_engulfing(self, bars: list[Bar]) -> tuple[SignalDirection, float, PatternName]:
         """ 강세 장악형(불장, 이중봉) ─ 강력한 반전 신호 기대 """
         if len(bars) < 2:
             return cfg.trade.signal.no_signal_pattern
@@ -83,7 +104,7 @@ class RuleBasedPatternEngine:
             return cfg.str.buy, cfg.trade.pc.double_confidence, cfg.str.bullish_engulfing
         return cfg.trade.signal.no_signal_pattern
     
-    def _morning_star(self, bars: list[Bar]) -> tuple[SignalDirection, float, str]:
+    def _morning_star(self, bars: list[Bar]) -> tuple[SignalDirection, float, PatternName]:
         """ 샛별형(삼봉) ─ 하락 추세에서 반전하는 삼봉 패턴 """
         if len(bars) < 3:
             return cfg.trade.signal.no_signal_pattern
@@ -100,7 +121,7 @@ class RuleBasedPatternEngine:
             return cfg.str.buy, cfg.trade.pc.triple_confidence, cfg.str.morning_star
         return cfg.trade.signal.no_signal_pattern
     
-    def _box_breakout(self, bars: list[Bar]) -> tuple[SignalDirection, float, str]:
+    def _box_breakout(self, bars: list[Bar]) -> tuple[SignalDirection, float, PatternName]:
         """ 
         박스권 돌파(Box Breakout) ─ 횡보 구간에서 이탈 신호
         

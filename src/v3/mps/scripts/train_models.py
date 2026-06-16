@@ -14,6 +14,7 @@ Phase-2 인공지능 기반 매도 진입점 예측 모델 학습
 from __future__ import annotations
 
 import argparse 
+from mps.model.pattern.cnn import CNN1DNet
 import torch 
 from datetime import datetime 
 from pathlib import Path
@@ -82,7 +83,12 @@ def main() -> None:
         save_path=cfg.path.lstm_model_fpath
     )
     
-    # TODO 0615-1612: CNN1DNet 작업 후
+    train_track(
+        bars=bars,
+        track=cfg.model.pattern_track,
+        model=CNN1DNet(**cfg.train.cnn_settings.to_dict()),
+        save_path=cfg.path.cnn_model_fpath
+    )
 
     logger.debug(msg.training.finished(datetime.now() - start_datetime))
 

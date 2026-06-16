@@ -25,6 +25,7 @@ from typing import Literal, Optional, Union
 # ─────────────────────────────────────
 #   별칭 정의
 # ─────────────────────────────────────
+DataSource = Literal["KIS", "PYKRX", "STORE"]
 # 신호·라벨 방향: 매수 후보(BUY) 또는 관망(HOLD) 
 # ─ 신호 차원에 SELL(매도)는 존재하지 안음 → 매도는 가드를 이용해 처리
 SignalDirection = Literal["BUY", "HOLD"]
@@ -34,6 +35,12 @@ OrderAction = Literal["BUY", "SELL"]
 
 # 패턴 신호 추적 (phase 추적)
 PatternSource = Literal["RULE", "CNN", "VISION"]
+PatternName = Literal[
+    "HAMMER", "SHOOTING_STAR", "BULLISH_ENGULFING", "BEARISH_ENGULFING",
+    "MORNING_STAR", "EVENING_STAR", "BOX_BREAKOUT_UP", "BOX_BREAKOUT_DOWN",
+    "CNN_SEQ",
+    "NONE"
+]
 OrderType = Literal["MARKET", "LIMIT"]
 OrderStatus = Literal["PENDING", "FILLED", "PARTIAL", "CANCELLED"]
 ExitReason = Literal["TAKE_PROFIT", "STOP_LOSS", "TIME_OUT", "FORCE_CLOSE"]
@@ -156,6 +163,102 @@ class TradeSignal:
     pattern_track_conf  : float 
     total_latency_ms    : float 
 
+
+# ─────────────────────────────────────
+#   주문·거래 데이터
+# ─────────────────────────────────────
+
+# ── 주문 정보
+@dataclass 
+class Order:
+    """ 
+    RiskManager가 승인하여 실행 레이어(PaperTrader·KISOrderClient)에 전달하는 주문.
+    
+    - stop_loss, take_profit: TripleBarrier 기준으로 TripleBarrierGuard가 계산한 절대 가격
+    - expire_at: min(진입시간 + 60분(time_horizon), 당일 강제청산 시간(15:15))
+    - order_id: 백테스트에서 "{ticker}_{일시}" 문자열 → "%Y%m%d%H%M%S"
+                실거래에서는 KIS 주문번호로 사용하고 TradeRecord에서 "entry_time"값으로 활용
+    """
+    ticker              : str
+    dir                 : OrderAction
+    quantity            : int
+    order_type          : OrderType
+    stop_loss           : float 
+    take_profit         : float 
+    expire_at           : datetime 
+    order_id            : str
+    # 진입가 ─ submit_order 이후 채워짐
+    # - 최초 주문 정보가 생성될 당시에는 이 값이 생성되지 않고, 주문 정보만 생성됨.
+    price               : Optional[float] = None    
+    
+
+@dataclass 
+class Reject:
+    """ 
+    RiskManager가 주문을 거부할 때 반환하는 이유 객체
+    - Phase-1에서는 사용하지 않지만,
+      향후 추가 리스크 규칙(일일 손실 한도 초과 등) 구현 시 사용 예정
+    """
+    reason              : str
+    signal              : TradeSignal 
+    
+    
+@dataclass 
+class OrderResult:
+    """ 
+    PaperTrader(or KISOrderClient)가 주문 제출 후 반환하는 체결 결과
+    - 가상 거래에서는 구현하지 않고 실거래 시 구현 예정
+    """
+    order_id            : str
+    timestamp           : datetime
+    status              : OrderStatus
+    filled_price        : float         # 실 체결가
+    filled_quantity     : int           # 실 거래 수량
+    slippage            : float         # 기대가 대비 체결가 차이 (양수 = 불리하게 체결)
+    
+    
+@dataclass 
+class TradeRecord:
+    """ 
+    완결된 거래 한 건의 기록 (진입과 청산의 쌍)
+    - HistoricalSimulator가 청산 시 마다 생성하여 리스트에 추가
+    - PerformanceEvaluator.evaluate()의 입력으로 사용
+    """
+    ticker              : str 
+    dir                 : OrderAction
+    entry_price         : float 
+    exit_price          : float 
+    quantity            : int 
+    entry_time          : str           # 진입 시 order_id 문자열("{ticker}_{일시}") 사용
+    exit_time           : object        # 청산 봉의 timestamp(= datetime)
+    exit_reason         : ExitReason
+    cost                : float         # 왕복 총 비용
+
+# ── 거래 성능 측정
+@dataclass 
+class PerformanceReport:
+    """ 백테스트 성과 요약 보고서 """
+    total_trades        : int 
+    win_rate            : float 
+    profit_factor       : float 
+    max_drawdown        : float 
+    sharpe_ratio        : float 
+    total_return_pct    : float 
+    avg_return_per_trade_pct: float 
+    total_cost          : float 
+    
+    def __str__(self) -> str:
+        return (
+            f"총 거래: {self.total_trades:,}건, "
+            f"승률: {self.win_rate:.1%}, "
+            f"수익 인수: {self.profit_factor:.2f}, "
+            f"최대 낙폭: {self.max_drawdown:.1%}, "
+            f"샤프: {self.sharpe_ratio:.2f}, "
+            f"총 수익률: {self.total_return_pct:.2f}, "
+            f"거래당 수익률: {self.avg_return_per_trade_pct:.4%}, "
+            f"총 비용: {self.total_cost:,.0f}원"            
+        )
+        
 
 # ─────────────────────────────────────
 #   모델 학습 

@@ -72,8 +72,7 @@ class LSTMModel:
         model_arch: Optional[dict] = None,
         attribute: bool = True
     ) -> None:
-        self._device = torch.device(cfg.model.torch_device) \
-            if device is None else torch.device(device)
+        self._device = torch.device(device or cfg.model.torch_device) 
         self._model_arch = model_arch or cfg.train.lstm_settings.to_dict()
         self._model = LSTMNet(**self._model_arch).to(self._device)
         self._attribute = attribute 
