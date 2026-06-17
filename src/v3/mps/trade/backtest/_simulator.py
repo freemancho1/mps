@@ -12,17 +12,13 @@ HistoricalSimulator ─ 과거 분봉 재생 기반 백테스트 엔진
     6. 수량 계산 → TripleBarrier 기준으로 주문 생성 → 체결
   - 전체 거래 기록 → PerformanceEvaluator → PerformanceReport 반환
   
-[로직 단순화]
-  - 단일 포지션: open_order 변수 하나로 관리 (동시에 다중 포지션 없음)
-  - 항상 시장가 체결
-  - 롱 온리: 모든 포지션은 매수 진입 → 매도 청사 (공매도 없음)
+[로직 단순화] 단일 포지션 · 시장가 체결 · 롱 온리
 """
 from __future__ import annotations 
 
 from typing import cast, Optional 
 from datetime import datetime 
 from collections import deque 
-from dataclasses import replace 
 
 from mps.config import cfg, msg 
 from mps.core.types import Bar, Order, TradeRecord, PerformanceReport

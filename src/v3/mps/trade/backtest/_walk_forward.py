@@ -35,7 +35,7 @@ from mps.core.types import Bar, PerformanceReport
 from mps.core.calendar import market_open_datetime
 from mps.data.features import TripleBarrierLabeler, TripleBarrierDataset
 from mps.model.numeric.lstm import LSTMNet, LSTMModel
-from mps.model.pattern.cnn import CNN1DNet, CNN1DPatternModel
+from mps.model.pattern.cnn import CNN1DNet, CNN1DPatternModel 
 from mps.model.trainer import ModelTrainer
 from mps.freelibs import logger
 
