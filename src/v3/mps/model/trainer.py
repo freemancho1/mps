@@ -13,28 +13,30 @@ import numpy as np
 import torch 
 from torch.utils.data import DataLoader, Dataset, Subset 
 from collections.abc import Sized
-from typing import Optional 
+from typing import Optional, TypeVar, cast
 
 from mps.config import cfg, msg 
 from mps.core.libs import set_seed
 from mps.core.types import TrainHistory 
 from mps.freelibs import logger 
 
+# Pylance 경보 처리용
+_NetT = TypeVar("_NetT", bound=torch.nn.Module)
+
 
 class ModelTrainer:
     def __init__(self, device: Optional[str] = None) -> None:
         self._device = torch.device(cfg.model.torch_device if device is None else device)
 
-    def train(
-        self, model: torch.nn.Module, ds: Dataset
-    ) -> tuple[torch.nn.Module, TrainHistory]:
+    def train(self, model: _NetT, ds: Dataset) -> tuple[_NetT, TrainHistory]:
         if not isinstance(ds, Sized):
             raise TypeError(msg.training.err.not_len_func(ds))
         if len(ds) < cfg.model.min_dataset_size:
             raise ValueError(msg.training.err.insufficient_data(ds))
         
         set_seed(cfg.sys.seed)
-        model = model.to(self._device)
+        model = cast(_NetT, model.to(self._device))
+        
 
         train_ds, val_ds = _time_split(
             ds, cfg.train.hyper_params.val_ratio, cfg.data.embargo_bars)

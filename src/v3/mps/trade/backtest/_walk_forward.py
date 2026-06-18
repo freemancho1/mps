@@ -127,17 +127,6 @@ class WalkForwardValidator:
         # logger.debug(msg.bt.wf_fold_train_result(cnn_net))
         
         # 학습된 가중치를 그대로 보유한 추론 어댑터 생성
-        # (파일 저장 없이 메모리로 전달)
-        numeric_model = LSTMModel(device=cfg.model.torch_device)
-        numeric_model.model.load_state_dict(lstm_net.state_dict())
-        numeric_model.model.eval()
-        numeric_model._trained = True 
-        
-        pattern_model = CNN1DPatternModel(device=cfg.model.torch_device)
-        pattern_model.model.load_state_dict(cnn_net.state_dict())
-        pattern_model.model.eval()
-        pattern_model._trained = True 
-        
-        return numeric_model, pattern_model
+        return LSTMModel.from_net(lstm_net), CNN1DPatternModel.from_net(cnn_net)
         
         

@@ -129,3 +129,12 @@ class CNN1DPatternModel:
             latency_ms=latency_ms
         )
         
+    @classmethod 
+    def from_net(cls, net: CNN1DNet, device: str = cfg.model.torch_device) -> "CNN1DPatternModel":
+        """ 학습 완료된 네트워크를 추론 어댑터로 감싸 제공 ─ WalkForward 용 """
+        model = cls(device=device)
+        model._model.load_state_dict(net.state_dict())
+        model._model.eval()
+        model._trained = True 
+        return model
+        
