@@ -34,9 +34,10 @@ class _Config:
     error                   : str           = "ERROR"
     critical                : str           = "CRITICAL"
     level                   : str           = debug
-    level_pattern           : Pattern       = re.compile(r'\[(DEBUG|INFO|WARNING|ERROR|CRITICAL)\]')
+    # level_pattern           : Pattern       = re.compile(r'\[(DEBUG|INFO|WARNING|ERROR|CRITICAL)\]')
+    level_pattern           : Pattern       = re.compile(r'\s*(DEBUG|INFO|WARNING|ERROR|CRITICAL):')
 
-    string_format           : str           = "%(asctime)s.%(msecs)05d [%(levelname)s] %(message)s"
+    string_format           : str           = "%(asctime)s.%(msecs)05d %(levelname)8s: %(message)s"
     datetime_format         : str           = "%Y-%m-%d %H:%M:%S"
 
     # 한번에 읽는 블럭 크기

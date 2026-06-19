@@ -13,7 +13,7 @@ from mps.freelibs import logger
 
 def main():
     args = parse_args()
-    logger.info(msg.bt.title(args))
+    logger.debug(msg.bt.title(args))
     
     ticker, start, end, capital, train_days, test_days = \
         args.ticker, args.start, args.end, args.capital, args.train_days, args.test_days

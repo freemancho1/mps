@@ -34,4 +34,48 @@ from collections import deque
 from mps.config import cfg, msg 
 from mps.core.types import Bar, Order, TradeRecord, PerformanceReport
 from mps.core.types import ExitReason
-# TODO 0616-1546: core.ports 작업 후
+from mps.core.ports import NumericModelPort, PatternModelPort, ExitPolicyPort
+from mps.data.features import BarValidator
+from mps.freelibs import logger 
+
+
+class HistoricalSimulator:
+    def __init__(
+        self, 
+        capital: Optional[float] = None, 
+        lookback_minutes: Optional[int] = None, 
+        numeric_model: Optional[NumericModelPort] = None,
+        pattern_model: Optional[PatternModelPort] = None,
+        exit_policy: Optional[ExitPolicyPort] = None,
+    ) -> None:
+        # 초기 자본과 과거 신호 데이터는 0 일 수 없음
+        self._capital = capital or cfg.run.init_capital     
+        self._lookback = lookback_minutes or cfg.data.lookback_minutes
+        
+        self._validator = BarValidator()
+        # self._pipeline = 
+        # TODO 0619-1012: run 작업 후
+        
+    def run(
+        self, 
+        bars: list[Bar], 
+        trade_start: Optional[datetime] = None
+    ) -> PerformanceReport:
+        """ 
+        과거 분봉을 재생하며 백테스트 → PerformanceReport.
+        
+        trade_start: 신규 진입 허용 시각.
+          - walk-forward에서 위밍업(버퍼) 구간 봉은 지표 계산에만 쓰고,
+            테스트 구간에서만 실제 진입하도록 격리하느데 사용.
+          - 워밍업 구간에서도 '보유 포지션 청산'은 정상 수행됨.
+        """
+        logger.info(msg.bt.sim_info(trade_start, bars))
+        
+        valid_bars = self._validator.filter(bars)
+        if len(valid_bars) < self._lookback + 1:
+            raise ValueError(msg.bt.err.sim_data_size(len(valid_bars), self._lookback))
+        
+        # 버퍼 = 룩백 + 워밍업. deque-maxlen으로 오래된 봉 자동 폐기
+        buffer: deque[Bar] = deque(maxlen=cfg.data.buffer_bars)     # 120+50 = 170봉
+        # TODO 0619-1127: Portfolio 작업 후
+        

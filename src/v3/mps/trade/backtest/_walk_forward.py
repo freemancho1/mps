@@ -37,6 +37,7 @@ from mps.data.features import TripleBarrierLabeler, TripleBarrierDataset
 from mps.model.numeric.lstm import LSTMNet, LSTMModel
 from mps.model.pattern.cnn import CNN1DNet, CNN1DPatternModel 
 from mps.model.trainer import ModelTrainer
+from ._simulator import HistoricalSimulator
 from mps.freelibs import logger
 
 
@@ -54,7 +55,7 @@ class WalkForwardValidator:
         self._train_days = cfg.run.train_days if train_days is None else train_days     # 30
         self._test_days = cfg.run.test_days if test_days is None else test_days         # 10
         self._capital = capital or cfg.run.init_capital
-        logger.info(msg.bt.wf_info(self))
+        logger.debug(msg.bt.wf_info(self))
         
     def run(self, bars: list[Bar]) -> list[PerformanceReport]:
         """ 전체 bars에 걸쳐 롤링 윈도우 학습/평가를 수행하고 폴드별 성과 보고서 반환 """
@@ -90,7 +91,12 @@ class WalkForwardValidator:
             
             try:
                 numeric_model, pattern_model = WalkForwardValidator._train_models(train_bars)
-                
+                simulator = HistoricalSimulator(
+                    capital=self._capital,
+                    numeric_model=numeric_model,
+                    pattern_model=pattern_model,
+                )
+                report = simulator.run(eval_bars, trade_start=trade_start_datetime)
                 # TODO 0616-1444: HistoricalSimulator() 작업 후
             
             except ValueError as ve:

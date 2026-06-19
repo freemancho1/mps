@@ -58,14 +58,14 @@ class Bar:
     
     look-ahead bias를 방지하기 위해 is_complete 필드를 이용함.
     """
-    ticker              : str               
-    timestamp           : datetime          # 봉 시작 시간
-    open                : float
+    ticker              : str 
+    timestamp           : datetime 
+    open                : float 
     high                : float 
-    low                 : float
-    close               : float
-    volume              : int
-    is_complete         : bool = False      # 봉 완성 여부 ─ False인 봉은 필터링(학습제외)됨.
+    low                 : float 
+    close               : float 
+    volume              : int 
+    is_complete         : bool = False 
     
 
 # ─────────────────────────────────────
@@ -174,11 +174,15 @@ class Order:
     """ 
     RiskManager가 승인하여 실행 레이어(PaperTrader·KISOrderClient)에 전달하는 주문.
     
-    - stop_loss, take_profit: TripleBarrier 기준으로 TripleBarrierGuard가 계산한 절대 가격
-    - expire_at: min(진입시간 + 60분(time_horizon), 당일 강제청산 시간(15:15))
-    - order_id: 백테스트에서 "{ticker}_{일시}" 문자열 → "%Y%m%d%H%M%S"
-                실거래에서는 KIS 주문번호로 사용하고 TradeRecord에서 "entry_time"값으로 활용
+    - stop_loss · take_profit: '체결가' 기준으로 산출한 절대 가격(원).
+      ─ 브레이크이븐 스톱 발동 시 stop_loss는 상향 조정될 수 있음(가변 필드).
+    - expire_at: min(체결시간+time_horizon, 당일 강제청산 시각 15:15)
+    - order_id: "{ticker}_{YYYYMMDD_HHMMSS}" 
+      ─ 날짜를 포함해 여러날 백테스트에서도 유일함을 보장받음 
+    - breakeven_armed: [수익성-E] + trigger 도달 여부.
+      ─ 다음 봉부터 상향된 스톱을 적용하기 위한 상태 플래그 (같은 봉 내 터치 순서는 알 수 없음)
     """
+    
     ticker              : str
     dir                 : OrderAction
     quantity            : int
@@ -190,8 +194,10 @@ class Order:
     # 진입가 ─ submit_order 이후 채워짐
     # - 최초 주문 정보가 생성될 당시에는 이 값이 생성되지 않고, 주문 정보만 생성됨.
     price               : Optional[float] = None    
+    breakeven_armed     : bool = False
     
 
+# TODO 9999-9999 여기 작업
 @dataclass 
 class Reject:
     """ 

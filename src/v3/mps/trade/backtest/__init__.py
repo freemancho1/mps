@@ -1,1 +1,2 @@
 from ._walk_forward import WalkForwardValidator
+from ._simulator import HistoricalSimulator

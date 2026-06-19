@@ -51,8 +51,14 @@ bt = DictDot(               # BackTest
     wf_fold_info            = lambda f, tr, w, te: CF(f" - Fold[{f:03}]: train({tr[0]}~{tr[-1]}), warmup({w[0]}~{w[-1]}), test({te[0]}~{te[-1]})"),
     wf_fold_train_result    = lambda m: CF(f"   = {m.__class__.__name__}, Result: {m.state_dict()}"),
     
+    sim_info                = lambda d, b: CF(f" - 시뮬레이션 정보: 거래일 정보({d}), 봉 정보({b[0].timestamp.date()} ~ {b[-1].timestamp.date()})"),
+    
     err = DictDot(
         no_data             = CF("학습에 사용할 데이터가 존재하지 않습니다."),  
         insufficient_data   = lambda e, f: CF(f"학습에 필요한 데이터가 충분하지 않아 이 폴드({f})는 건너뜀니다. [ERROR] {str(e)}"),
+        sim_data_size       = lambda ds, bs: f"시뮬레이션 수행 최소 데이터 크기: {bs}개, 입력 데이터 크기: {ds}",
+        pf_single_position  = "단일 포지션 원칙 위반: 이미 포지션을 보유 중",
+        pf_no_price         = "체결가가 확정되지 않은 주문은 등록할 수 없습니다.",
+        pf_no_position      = "보유중인 포지션이 없어 청산할 수 없습니다.",
     ),
 )
