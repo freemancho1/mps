@@ -7,6 +7,7 @@ from mps.core.types import DataSource
 from mps.core.types import ExitHoldReason
 from mps.core.types import OrderAction, OrderStatus, OrderType
 from mps.core.types import PatternSource, PatternName
+from mps.core.types import RejectReason
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ class _KeyValues:
     capital                 : str = "--capital"
     class_counts            : str = "class_counts"
     close                   : str = "close"
+    count                   : str = "count"
     cpu                     : str = "cpu"
     cuda                    : str = "cuda"
 
@@ -37,6 +39,8 @@ class _KeyValues:
     macd                    : str = "macd"
     macd_diff               : str = "macd_diff"
     macd_signal             : str = "macd_signal"
+    max_ms                  : str = "max_ms"
+    mean_ms                 : str = "mean_ms"
     meta                    : str = "meta"
     
     numeric                 : str = "numeric"
@@ -44,6 +48,7 @@ class _KeyValues:
     obv                     : str = "obv"
     open                    : str = "open"
     
+    p95_ms                  : str = "p95_ms"
     pattern                 : str = "pattern"
     
     ret_1                   : str = "ret_1"
@@ -76,6 +81,9 @@ class _StringValue:
     cnn                     : PatternSource = "CNN"
     cnn_seq                 : PatternName = "CNN_SEQ"               # cnn pattern_name
 
+    daily_loss_limit        : RejectReason = "DAILY_LOSS_LIMIT"
+
+    entry_cutoff            : RejectReason = "ENTRY_CUTOFF"
     evening_star            : PatternName = "EVENING_STAR"
 
     filled                  : OrderStatus = "FILLED"
@@ -88,6 +96,8 @@ class _StringValue:
 
     market                  : OrderType = "MARKET"
     morning_star            : PatternName = "MORNING_STAR"
+
+    no_cash                 : RejectReason = "NO_CASH"
 
     pykrx                   : DataSource = "PYKRX"
 

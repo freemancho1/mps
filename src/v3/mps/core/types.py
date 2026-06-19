@@ -45,6 +45,7 @@ OrderType = Literal["MARKET", "LIMIT"]
 OrderStatus = Literal["PENDING", "FILLED", "PARTIAL", "CANCELLED"]
 ExitReason = Literal["TAKE_PROFIT", "STOP_LOSS", "TIME_OUT", "FORCE_CLOSE"]
 ExitHoldReason = Union[ExitReason, Literal["HOLD"]]
+RejectReason = Literal["ENTRY_CUTOFF", "DAILY_LOSS_LIMIT", "NO_CASH"]
 
 
 # ─────────────────────────────────────
@@ -161,7 +162,7 @@ class TradeSignal:
     combined_score      : float 
     numeric_track_conf  : float 
     pattern_track_conf  : float 
-    total_latency_ms    : float 
+    total_latency_ms    : float  
 
 
 # ─────────────────────────────────────
@@ -197,23 +198,26 @@ class Order:
     breakeven_armed     : bool = False
     
 
-# TODO 9999-9999 여기 작업
 @dataclass 
 class Reject:
     """ 
-    RiskManager가 주문을 거부할 때 반환하는 이유 객체
-    - Phase-1에서는 사용하지 않지만,
-      향후 추가 리스크 규칙(일일 손실 한도 초과 등) 구현 시 사용 예정
+    RiskManager가 주문을 거부할 때 반환하는 사유 객체.
+
+    진입 컷오프·손실 일일 한도 초과·현금 부족 등 거부 사유를 구조화해 남김
+    ─ '왜 진입하지 않았는가'도 관측 가능해야 함
     """
-    reason              : str
+    reason              : str           # "ENTRY_CUTOFF|DAILY_LOSS_LIMIT|NO_CASH..."
     signal              : TradeSignal 
     
     
 @dataclass 
 class OrderResult:
     """ 
-    PaperTrader(or KISOrderClient)가 주문 제출 후 반환하는 체결 결과
-    - 가상 거래에서는 구현하지 않고 실거래 시 구현 예정
+    주문 재출 후 체결 결과.
+
+    timestamp:  백테스트에서는 '시뮬레이션 시각(봉 시각)'을 주입받아 기록.
+                ─ 벽시계 datetime.now()를 쓰면 로그가 실제 시각축과 어긋남.
+    slippage:   기대가 대비 체결가 차이. 양수 = 투자자에게 불리.
     """
     order_id            : str
     timestamp           : datetime
@@ -229,6 +233,12 @@ class TradeRecord:
     완결된 거래 한 건의 기록 (진입과 청산의 쌍)
     - HistoricalSimulator가 청산 시 마다 생성하여 리스트에 추가
     - PerformanceEvaluator.evaluate()의 입력으로 사용
+
+    [주요 속성]
+    - cost:     왕복 '현금성 수수료` ─ 매수 수수료 + 매도 수수료 + 세금
+                → 슬리피지는 체결가에 포함되어 있으므로 여기에 포함 금지(이중 계상됨)
+    - pnl_net:  순손익(원) = (청산 체결가 - 진입 체결가) * 수량 - cost.
+                → 평가기가 '자본 대비 포트폴리오 수익'을 정확히 계산하는 근거
     """
     ticker              : str 
     dir                 : OrderAction
@@ -239,11 +249,21 @@ class TradeRecord:
     exit_time           : object        # 청산 봉의 timestamp(= datetime)
     exit_reason         : ExitReason
     cost                : float         # 왕복 총 비용
+    pnl_net             : float         # 왕복 총 손익
 
 # ── 거래 성능 측정
 @dataclass 
 class PerformanceReport:
-    """ 백테스트 성과 요약 보고서 """
+    """ 
+    백테스트 성과 요약 ─ 포트폴리오 기준 정합
+
+    [주요 속성]
+    - total_return_pct  : 초기 자본 대비 순손익 비율 = Σpnl_net / capital.
+                          ─ '거래당 수익률 합'은 1회 투입이 자본의 10%라는 사실을 무시해 과대 표시함.
+    - max_drawdown      : 실제 에쿼티 곡선(자본 + 청산순 누적 손익)의 최대 낙폭
+    - sharpe_ratio      : '일별' 수익률 mean/std * √242.
+                          ─ 거래당 수익률에 √(242*390)을 곱하면 거래를 1분봉 수익률로 취급하는 오류 발생
+    """
     total_trades        : int 
     win_rate            : float 
     profit_factor       : float 
@@ -259,8 +279,8 @@ class PerformanceReport:
             f"승률: {self.win_rate:.1%}, "
             f"수익 인수: {self.profit_factor:.2f}, "
             f"최대 낙폭: {self.max_drawdown:.1%}, "
-            f"샤프: {self.sharpe_ratio:.2f}, "
-            f"총 수익률: {self.total_return_pct:.2f}, "
+            f"샤프(일별): {self.sharpe_ratio:.2f}, "
+            f"총 수익률(자본대비): {self.total_return_pct:.2f}, "
             f"거래당 수익률: {self.avg_return_per_trade_pct:.4%}, "
             f"총 비용: {self.total_cost:,.0f}원"            
         )

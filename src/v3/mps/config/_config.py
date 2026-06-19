@@ -51,7 +51,10 @@ class _SystemConfig:
     timezone                : ZoneInfo      = field(default_factory=lambda: ZoneInfo("Asia/Seoul"))
     date_format             : str           = "%Y%m%d"
     time_format             : str           = "%H:%M:%S"
-    datetime_format         : str           = "%Y%m%d%H%M%S"
+    datetime_format         : str           = "%Y%m%d_%H%M%S"
+
+    signal_logging_on       : bool          = True
+    order_logging_on        : bool          = True
 
 
 @dataclass(frozen=True)
@@ -334,14 +337,14 @@ class _RiskConfig:
     conviction_sizing       : bool          = True 
     conviction_min_factor   : float         = 0.7
     conviction_max_factor   : float         = 1.3
-
+ 
 
 @dataclass(frozen=True)
 class _TradeConfig:
     barrier                 : _BarrierConfig= field(default_factory=_BarrierConfig)
     cost                    : _CostConfig   = field(default_factory=_CostConfig)
     signal                  : _SignalConfig = field(default_factory=_SignalConfig)
-    rist                    : _RiskConfig   = field(default_factory=_RiskConfig)
+    risk                    : _RiskConfig   = field(default_factory=_RiskConfig)
     pc                      : _PatternConfig= field(default_factory=_PatternConfig)
 
     @property 

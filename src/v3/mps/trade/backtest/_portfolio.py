@@ -97,6 +97,8 @@ class Portfolio:
         self._cash += record.entry_price * record.quantity + pnl_gross - sell_fee 
         
         self._trades.append(record)
-        # TODO 0619-1344: types.TradeRecord를 포함한 전체 확인 후
-        # self._day_pnl += record.pnl_net
+        self._day_pnl += record.pnl_net
+
+        self._open_order = None 
+        self._entry_time = None  
         

@@ -60,5 +60,6 @@ bt = DictDot(               # BackTest
         pf_single_position  = "단일 포지션 원칙 위반: 이미 포지션을 보유 중",
         pf_no_price         = "체결가가 확정되지 않은 주문은 등록할 수 없습니다.",
         pf_no_position      = "보유중인 포지션이 없어 청산할 수 없습니다.",
+        enrty_reject        = lambda r: CF(f"진입이 거부되었습니다. 거부 사유: {r.reason}, 거래신호: {r.signal}"),
     ),
 )

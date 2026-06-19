@@ -32,7 +32,7 @@ def market_close_datetime(check_date: date) -> datetime:
     """ 점검일의 패장 시각 (15:30:00 KST) 반환 """
     return datetime.combine(check_date, cfg.market.close_time, tzinfo=cfg.sys.timezone)
 
-def force_close_dt(check_date: date, min_force: Optional[int] = None) -> datetime:
+def force_close_datetime(check_date: date, min_force: Optional[int] = None) -> datetime:
     """ 
     강제청산 기준 시각 = 폐장 N분 전 ─ 기본값 15 = 15:30 - 15분
 
