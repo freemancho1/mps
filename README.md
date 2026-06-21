@@ -3,7 +3,7 @@
 KOSPI 단타(데이트레이딩) 자동매매 시스템. <br/>
 수치 트랙(LSTML)과 패턴 트랙(1D-CNN)의 합의 신호로 매수 진입하고, 손절·익절·만료·강종 가도르 청산함. 
 
-## 설치
+<!-- ## 설치
 project-home-dir/pyproject.toml에서 `where`부분 수정
 
 ```code
@@ -16,7 +16,7 @@ where = ["src/v3"]
 
 ```bash
 pip install -e .
-```
+``` -->
 
 ## 실행
 ```bash
