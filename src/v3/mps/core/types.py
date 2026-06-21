@@ -245,8 +245,8 @@ class TradeRecord:
     entry_price         : float 
     exit_price          : float 
     quantity            : int 
-    entry_time          : str           # 진입 시 order_id 문자열("{ticker}_{일시}") 사용
-    exit_time           : object        # 청산 봉의 timestamp(= datetime)
+    entry_time          : datetime      # 진입 시 order_id 문자열("{ticker}_{일시}") 사용
+    exit_time           : datetime      # 청산 봉의 timestamp(= datetime)
     exit_reason         : ExitReason
     cost                : float         # 왕복 총 비용
     pnl_net             : float         # 왕복 총 손익

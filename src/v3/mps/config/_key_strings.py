@@ -86,6 +86,7 @@ class _StringValue:
     entry_cutoff            : RejectReason = "ENTRY_CUTOFF"
     evening_star            : PatternName = "EVENING_STAR"
 
+    feature                 : str = "FEATURE"
     filled                  : OrderStatus = "FILLED"
     force_close             : ExitHoldReason = "FORCE_CLOSE"
 
@@ -98,7 +99,9 @@ class _StringValue:
     morning_star            : PatternName = "MORNING_STAR"
 
     no_cash                 : RejectReason = "NO_CASH"
+    numeric                 : str = "NUMERIC"
 
+    pattern                 : str = "PATTERN"
     pykrx                   : DataSource = "PYKRX"
 
     rule                    : PatternSource = "RULE"

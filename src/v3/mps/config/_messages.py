@@ -14,8 +14,9 @@ pp = DictDot(               # Preprocessing
     features = DictDot(
         label_size          = lambda s, l: CF(f"라벨링 대상 분봉 갯 수: {len(s)}개, 라벨링 결과: {l.shape}"),
         dist_labels         = lambda d: CF(f"전체 데이터 라벨링 결과: {d}"),
-        dataset_result     = lambda ds, di: CF(f"학습용 샘플 수: {len(ds)}개, 라벨링 분포: {di}"),
+        dataset_result      = lambda ds, di: CF(f"학습용 샘플 수: {len(ds)}개, 라벨링 분포: {di}"),
         window_range        = lambda s, e: CF(f"데이터셋 학습 윈도우 경계: {s} ~ {e}"),
+        normal_size_err     = lambda b, s: f"정규화 대상 윈도우 크기({len(b)})가 최소 크기({s})보다 적습니다.",
     ),
 )
 
@@ -47,12 +48,15 @@ bt = DictDot(               # BackTest
     script_title            = f"MPS Phase-2 백테스트 실행 스크립트",
     title                   = lambda a: CF(f"MPS Phase-2 백테스트 실행: 입력값={a}"),
     result                  = lambda t: CF(f"MPS Phase-2 백테스트 종료: 전체 처리시간={t}"),
-    wf_info                 = lambda s: CF(f"WarkForward Validator 실행 정보: 훈련일자={s._train_days}일, 시험일자={s._test_days}일, 초기자본={s._capital:,.0f}원"),
+    wf_info                 = lambda s: CF(f"WalkForward Validator 실행 정보: 훈련일자={s._train_days}일, 시험일자={s._test_days}일, 초기자본={s._capital:,.0f}원"),
     wf_fold_info            = lambda f, tr, w, te: CF(f" - Fold[{f:03}]: train({tr[0]}~{tr[-1]}), warmup({w[0]}~{w[-1]}), test({te[0]}~{te[-1]})"),
     wf_fold_train_result    = lambda m: CF(f"   = {m.__class__.__name__}, Result: {m.state_dict()}"),
-    
+    wf_result               = lambda report_size: CF(f"WalkForward 실행 종료: 생성된 보고서 수 = {report_size}개"),
+    wf_report               = lambda idx, report: CF(f" - 보고서[{idx:>2d}] {report}"),
+
     sim_info                = lambda d, b: CF(f" - 시뮬레이션 정보: 거래일 정보({d}), 봉 정보({b[0].timestamp.date()} ~ {b[-1].timestamp.date()})"),
-    
+    sim_result              = lambda result: CF(f" - 시뮬레이션 결과: {result}"),
+
     err = DictDot(
         no_data             = CF("학습에 사용할 데이터가 존재하지 않습니다."),  
         insufficient_data   = lambda e, f: CF(f"학습에 필요한 데이터가 충분하지 않아 이 폴드({f})는 건너뜀니다. [ERROR] {str(e)}"),
@@ -61,5 +65,7 @@ bt = DictDot(               # BackTest
         pf_no_price         = "체결가가 확정되지 않은 주문은 등록할 수 없습니다.",
         pf_no_position      = "보유중인 포지션이 없어 청산할 수 없습니다.",
         enrty_reject        = lambda r: CF(f"진입이 거부되었습니다. 거부 사유: {r.reason}, 거래신호: {r.signal}"),
+        exit_trade          = lambda o: CF(f"미체결 주문 참조: {o}"),
+        model_phase         = lambda p, s: CF(f"Phase-{p} 단계에 맞는 {s} 트랙 모델이 준비되지 않았습니다."),
     ),
 )

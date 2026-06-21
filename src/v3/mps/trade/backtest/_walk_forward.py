@@ -97,7 +97,7 @@ class WalkForwardValidator:
                     pattern_model=pattern_model,
                 )
                 report = simulator.run(eval_bars, trade_start=trade_start_datetime)
-                # TODO 0616-1444: HistoricalSimulator() 작업 후
+                reports.append(report)
             
             except ValueError as ve:
                 # 학습 데이터(학습 샘플·룩백 미달) 부족 → 이 폴드만 skip (정상적으로 발생 가능)

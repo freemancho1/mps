@@ -34,9 +34,12 @@ def main():
     start_dt = datetime.now()
     
     validator = WalkForwardValidator(train_days, test_days, capital)
-    report: list[PerformanceReport] = validator.run(bars) 
-    # TODO 0616-1003: WalkForwardValidator 작업 후
-    
+    reports: list[PerformanceReport] = validator.run(bars) 
+
+    logger.info(msg.bt.wf_result(len(reports)))
+    for idx, report in enumerate(reports, 1):
+        logger.info(msg.bt.wf_report(idx, report))
+
     logger.info(msg.bt.result(datetime.now() - start_dt))
 
 

@@ -112,7 +112,8 @@ class LSTMModel:
         contrib: dict = {}
         if self._attribute:
             x.requires_grad_(True)
-            logits = self._model(x)
+            with torch.backends.cudnn.flags(enabled=False):
+                logits = self._model(x)
             self._model.zero_grad(set_to_none=True)
             logits[0, cls_idx].backward()
             assert x.grad is not None, msg.training.not_compute_gradient
