@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from dataclasses import dataclass, field, asdict 
 
 from ._key_strings import _KeyValues, _StringValue
-from mps.core.types import AggregationMode, SignalDirection, PatternName
+from mps.core.types import AggregationMode, SignalDirection, PatternName, TrackType
 
 
 # ─────────────────────────────────────
@@ -147,7 +147,77 @@ class _MarketConfig:
         # 일분봉은 일 분 수와 동일 ─ 5분봉 등으로 전환 시 이 부분만 수정하면 됨
         return self.minutes_per_day      
 
+
+# ─────────────────────────────────────
+#   모델 훈련 설정 ─ LSTM, CNN, Parameter
+# ─────────────────────────────────────
+
+@dataclass(frozen=True)
+class _LSTMConfig:
+    input_size              : int           = 14
+    hidden_size             : int           = 64
+    num_layers              : int           = 2
+    num_classes             : int           = 2     # BUY·HOLD 사냐마냐
+    dropout                 : float         = 0.2
     
+    def to_dict(self) -> dict:
+        return asdict(self)
+    
+
+@dataclass(frozen=True)
+class _CNNConfig:
+    in_channels             : int           = 5
+    num_classes             : int           = 2
+    dropout                 : float         = 0.2
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
+    
+
+@dataclass(frozen=True)
+class _HyperparameterConfig:
+    epochs                  : int           = 50
+    batch_size              : int           = 64
+    lr                      : float         = 1e-4
+    weight_decay            : float         = 1e-4
+    val_ratio               : float         = 0.2       # 뒤 20%를 가지고 검증
+    patience                : int           = 10        # 조기 종료를 위한 검사 횟 수    
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+    
+
+@dataclass(frozen=True)
+class _ModelingConfig:
+    torch_device            : str           = "cuda"
+    numeric_track           : TrackType     = "numeric"
+    pattern_track           : TrackType     = "pattern"
+    default_track           : TrackType     = numeric_track
+
+    min_dataset_size        : int           = 100
+
+    # 14개 피처 ─ 순서가 생성되는 행렬 컬럼이므로 변경하면 안됨.
+    # (불변 보장을 위해 tuple 사용)
+    feature_names           : tuple[str, ...] = (
+                                                "rsi_14",
+                                                "macd", "macd_signal", "macd_diff",
+                                                "bb_upper", "bb_mid", "bb_lower", "bb_pband",
+                                                "obv", "atr_14", "volume_ratio",
+                                                "ret_1", "ret_5", "ret_20"
+                                            )
+    
+    params                  : _HyperparameterConfig = field(default_factory=_HyperparameterConfig)
+    
+    @property 
+    def feature_idx(self) -> dict[str, int]:
+        """ 피처명 → 컬럼 인덱스. ThresholdModel의 임계값 판정 등에 사용 """
+        return {name: idx for idx, name in enumerate(self.feature_names)}
+    
+    @property
+    def feature_count(self) -> int:
+        return len(self.feature_names)
+    
+
 # ─────────────────────────────────────
 #   거래 관련 상수
 # ─────────────────────────────────────
@@ -232,6 +302,11 @@ class _Config:
     kis                     : _KisApiConfig = field(default_factory=_KisApiConfig)
     
     market                  : _MarketConfig = field(default_factory=_MarketConfig)
+
+    lstm                    : _LSTMConfig   = field(default_factory=_LSTMConfig)
+    cnn                     : _CNNConfig    = field(default_factory=_CNNConfig)
+    params                  : _HyperparameterConfig = field(default_factory=_HyperparameterConfig)
+    modeling                : _ModelingConfig = field(default_factory=_ModelingConfig)
     
     barrier                 : _BarrierConfig = field(default_factory=_BarrierConfig)
 

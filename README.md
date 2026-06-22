@@ -43,24 +43,16 @@ cd ~/projects/mps
 ### mps
 #### document:: docs ─ mps.docs
 * `documents/`: 프로젝트 설계 원칙·의사결정은 design-philosophy.ipynb 참조
-#### 공통 소스코드:: common ─ mps.freelibs
-* `logger/`: 로그 처리
 
-### mps/src/v?
-#### source:: mps ─ msp/src/v3/mps
-* `config/`: 변수·메시지·상수 설정 ─ 설정부
-* `core/`: 타입·인터페이스(port)·유틸리티 ─ 공통부
+#### source:: 
+* `core/`: config·타입·인터페이스(port)·유틸리티 ─ 공통부
 * `data/`: 분봉 수집·저장(loader·store) + 피처 파이프라인(features) ─ 거래·훈련 공통 데이터 계층
-* `models/`: 트랙별 모델(numeric·pattern) + 학습·레지스트리·팩토리 관리 ─ 모델 학습부
-* `signals/`: 신호 결합
-* `execution/`: 실행
-* `backtest/`: 테스트
-* `observability/`: 관측
-* `test/`: 각종 개발관련 테스트
+* `model/`: 트랙별 모델(numeric·pattern) + 학습·레지스트리·팩토리 관리 ─ 모델 학습부
+* `trade/`: 실행, 백테스트, 신호, 관측 등 거래의 모든 내용이 들어감
 * `scripts/`: 각종 실행 스크립트, train_models, backtest.py
+* `x.test/`: 각종 태스트 프로그램
 
-#### artifacts:: artifacts ─ msp/src/v3/artifacts
+#### artifacts:: artifacts ─ msp/artifacts
 * `models/`: 모델 학습 결과 저장
-* `monitoring/`: 사용자 로그 저장
-* `output/`: 시스템이 관리하는 로그 저장(통계 작성용)
+* `monitoring/`: 시스템이 관리하는 로그 저장(통계 작성용)
 * `store/`: 분봉 파일 저장용 폴더

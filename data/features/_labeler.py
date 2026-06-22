@@ -93,8 +93,8 @@ class TripleBarrierLabeler:
         # BUY 조건: 익절이 손절보다 '엄격히' 먼저 (동시 도달 → 손절 우선 → HOLD)
         buy_mask = first_take_profit < first_stop_loss
         label_arr[:-1][buy_mask] = cfg.data.dir2idx[cfg.str.buy]
-        label_T = TripleBarrierLabeler.label_distribution(label_arr)
-        logger.point(msg.feature.labeling_result(bars, label_T))
+        label_dist = TripleBarrierLabeler.label_distribution(label_arr)
+        logger.point(msg.feature.labeling_result(bars, label_dist))
         return label_arr
     
     @staticmethod

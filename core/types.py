@@ -31,6 +31,9 @@ SignalDirection : TypeAlias = Literal["BUY", "HOLD"]
 # 체결 행위(주문·청산 방향): 매수(진입, BUY), 매도(청산, SELL)
 OrderAction     : TypeAlias = Literal["BUY", "SELL"]
 
+# Track 유형
+TrackType       : TypeAlias = Literal["numeric", "pattern"]
+
 # 패턴 신호 추적 (phase 추적)
 PatternSource   : TypeAlias = Literal["RULE", "CNN", "VISION"]
 PatternName     : TypeAlias = Literal[

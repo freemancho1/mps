@@ -23,7 +23,8 @@ class _LoaderMessages:
 
 @dataclass(frozen=True)
 class _FeatureMessages:
-    labeling_result         : mfn = lambda bars, label_t: CF(f"라벨링 대상 분봉 갯 수: {len(bars)}개, 라벨링 결과: {label_t}")
+    labeling_result         : mfn = lambda bars, label_dist: CF(f"라벨링 대상 분봉 갯 수: {len(bars)}개, 라벨링 결과: {label_dist}")
+    ds_window_size          : mfn = lambda s_pit, e_pit: CF(f"데이터셋 학습 윈도우: 시작={s_pit}, 종료={e_pit}")
 
 
 @dataclass(frozen=True)
