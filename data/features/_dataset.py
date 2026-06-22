@@ -47,12 +47,17 @@ class TripleBarrierDataset(torch.utils.data.Dataset):
         end_pit = bar_count - time_horizon 
         logger.point(msg.feature.ds_window_size(start_pit, end_pit))
 
-        self._X = self._build_numeric_window(bars, start_pit, end_pit) \
-                    if track == cfg.modeling.numeric_track else \
-                        self._build_pattern_window(bars, start_pit, end_pit)
-        
-        self._y = labels[start_pit:end_pit].astype(np.int64) \
-                    if end_pit > start_pit else np.empty(0, dtype=np.int64)
+        if track == cfg.modeling.numeric_track:
+            X = self._build_numeric_window(bars, start_pit, end_pit)
+        else:
+            X = self._build_pattern_window(bars, start_pit, end_pit)
+
+        if end_pit > start_pit:
+            y = labels[start_pit:end_pit].astype(np.int64)
+        else:
+            y = np.empty(0, dtype=np.int64)
+
+        self._X, self._y = X, y
     
     def _build_numeric_window(self, bars: list[Bar], start: int, end: int) -> np.ndarray:
         """ 수치 트랙 윈도우 생성 """
