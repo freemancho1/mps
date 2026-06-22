@@ -4,7 +4,7 @@ import inspect
 
 
 MAX_SIZE: int = 25
-MESSAGE_ONLY: bool = True 
+MESSAGE_ONLY: bool = False 
 POS_CALLED_FUNC: int = 2
 
 def call_function(message: str) -> str:

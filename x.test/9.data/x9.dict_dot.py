@@ -1,5 +1,5 @@
 from mps.core.config import msg
-from mps.core.utils import logger
+from mps.core.libs import logger
 
 
 if __name__ == "__main__":

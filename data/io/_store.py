@@ -17,9 +17,9 @@ from datetime import datetime
 from typing import cast, Optional 
 
 from mps.core.config import cfg, msg 
-from mps.core.types import Bar
+from mps.core.types import Bar 
 from mps.core.libs import to_float, to_int
-from mps.core.utils import logger
+from mps.core.libs import logger 
 
 
 class LocalParquetStore:
@@ -48,7 +48,7 @@ class LocalParquetStore:
         """
         store_path = self._build_store_path(ticker)
         if not store_path.exists():
-            logger.error(msg.store.file_not_found_err(store_path))
+            logger.warning(msg.store.file_not_found_err(store_path))
             return []
         
         source_df = pd.read_parquet(store_path)
@@ -57,7 +57,7 @@ class LocalParquetStore:
         mask = (source_df.index >= pd.Timestamp(start_dt)) \
                & (source_df.index <= pd.Timestamp(end_dt))
         sub_df = source_df.loc[mask]
-        logger.point(msg.store.load_data_info(sub_df))
+        logger.debug(msg.store.load_data_info(sub_df))
 
         results: list[Bar] = []
         for row in sub_df.itertuples():
@@ -97,4 +97,4 @@ class LocalParquetStore:
             new_df = new_df[~new_df.index.duplicated(keep=cfg.key.last)].sort_index()
 
         new_df.to_parquet(store_path)
-        logger.point(msg.store.save_parquet_info(new_df))
+        logger.debug(msg.store.save_parquet_info(new_df))
