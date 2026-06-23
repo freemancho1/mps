@@ -9,6 +9,7 @@ from mps.core.types import ExitHoldReason
 from mps.core.types import OrderAction, OrderStatus, OrderType
 from mps.core.types import PatternSource, PatternName
 from mps.core.types import RejectReason
+from mps.core.types import TrackType
 
 
 DropKeep: TypeAlias = Literal["first", "last", False]
@@ -48,13 +49,13 @@ class _KeyValues:
     mean_ms                 : str = "mean_ms"
     meta                    : str = "meta"
     
-    numeric                 : str = "numeric"
+    numeric                 : TrackType = "numeric"
     
     obv                     : str = "obv"
     open                    : str = "open"
     
     p95_ms                  : str = "p95_ms"
-    pattern                 : str = "pattern"
+    pattern                 : TrackType = "pattern"
     
     ret_1                   : str = "ret_1"
     ret_20                  : str = "ret_20"

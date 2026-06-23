@@ -244,7 +244,8 @@ class _DataConfig:
     # 캐시 데이터를 이용하지 않고 강제로 다시 데이터를 읽어오는 옵션
     force_refresh_data      : bool          = False 
     
-    # 룩백: 신호 생성 전 반드시 확보 할 과거 봉 수 (120~240분 봉)
+    # 룩백: 입력 윈도우의 크기(얼마나 과거까지 입력으로 넣을것인가?) (120~240분 봉)
+    # 120은 하루 거래량 390의 1/3이고 2시간(120분) 봉
     lookback_minutes        : int           = 120
     # 워밍업 봉 수: 시뮬레이터 버퍼(=lookback_minutes + warmup_bars) 계산을 위한 버퍼 공간
     warmup_bars             : int           = 50

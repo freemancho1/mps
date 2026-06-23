@@ -24,7 +24,6 @@ from mps.core.types import Bar, TrackType
 from mps.data.features import FeatureExtractor, TripleBarrierLabeler
 from mps.core.libs import logger 
 
-# TODO 9999-9999: TripleBarrierDataset Test
 
 class TripleBarrierDataset(torch.utils.data.Dataset):
     def __init__(
@@ -70,7 +69,7 @@ class TripleBarrierDataset(torch.utils.data.Dataset):
             mu = window.mean(axis=0)
             std = window.std(axis=0) + cfg.sys.zero 
             results.append(((window - mu) / std).astype(np.float32))
-
+            
         return (
             np.stack(results) if results else 
             np.empty((0, self._lookback, feature_count), dtype=np.float32)
