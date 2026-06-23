@@ -6,10 +6,12 @@ import numpy as np
 import torch 
 import pytest 
 from datetime import datetime, timezone 
+from typing import get_args
 
 from mps.core.config import cfg, msg
-from mps.core.types import Bar 
+from mps.core.types import Bar, TrackType
 from mps.data.features import TripleBarrierLabeler, TripleBarrierDataset
+from mps.core.libs import logger 
 
 
 def _make_bars(count: int, base_price: float = 10_000.0) -> list[Bar]:
@@ -174,5 +176,51 @@ def test_pattern_track(bars):
     x, _ = ds[0]
     assert x.shape == (LOOKBACK, N_FEATURES_PATTERN)
     
-# TODO 9999-9999: 여기 
-    
+
+# ─────────────────────────────────────
+#   class_counts
+# ─────────────────────────────────────
+
+class TestClassCounts:
+
+    def test_class_count(self, bars):
+        ds = TripleBarrierDataset(bars, track=NUMERIC, lookback=LOOKBACK)
+        
+        # 클래스 카운트 전체 합 = 전체 데이터셋 크기
+        assert ds.class_counts().sum() == len(ds)
+
+        # 클래스 갯 수 확인
+        assert len(ds.class_counts()) == cfg.lstm.num_classes
+
+        # 각 클래스 갯 수가 최소 0개 이상
+        assert (ds.class_counts() >= 0).all()
+
+
+# ─────────────────────────────────────
+#   유효성 검사
+# ─────────────────────────────────────
+
+class TestValidation:
+
+    def test_invalid_track_raises(self, bars):
+        with pytest.raises(TypeError) as exc_info:
+            # 실제 코드에서 TypeError가 발생하지 않으면 여기서 오류가 발생함.
+            TripleBarrierDataset(bars, track="invalid_track", lookback=LOOKBACK)
+        # logger.error(str(exc_info.value))
+
+    def test_custom_labeler_accepted(self, bars):
+        time_horizon = 30
+        labeler = TripleBarrierLabeler(0.03, 0.015, time_horizon=time_horizon)
+        ds = TripleBarrierDataset(bars, track=NUMERIC, lookback=LOOKBACK, labeler=labeler)
+        # cfg에 time_horizon이 있더라도, labeler에 들어온 time_horizon에 의해 ds가 만들어짐
+        expected = len(bars) - time_horizon - (LOOKBACK - 1)
+        logger.debug(f"데이터셋 크기: {len(ds)}{ds._X.shape}")
+        assert len(ds) == expected 
+
+    def test_custom_lookback(self, bars):
+        custom_lookback = 10
+        ds = TripleBarrierDataset(bars, track=NUMERIC, lookback=custom_lookback)
+        expected = len(bars) - HORIZON - (custom_lookback - 1)
+        logger.debug(f"데이터셋 크기: {len(ds)}{ds._X.shape}")
+        assert len(ds) == expected 
+        assert ds._X.shape == (len(ds), custom_lookback, N_FEATURES_NUMERIC)

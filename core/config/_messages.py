@@ -25,6 +25,7 @@ class _LoaderMessages:
 class _FeatureMessages:
     labeling_result         : mfn = lambda bars, label_dist: CF(f"라벨링 대상 분봉 갯 수: {len(bars)}개, 라벨링 결과: {label_dist}")
     ds_window_size          : mfn = lambda s_pit, e_pit: CF(f"데이터셋 학습 윈도우: 시작={s_pit}, 종료={e_pit}")
+    invalid_track_err       : mfn = lambda track, track_type: f"데이터셋을 만드는 트랙을 잘 못 설정하였습니다. 입력값: {track}, 기대값: {track_type}"
 
 
 @dataclass(frozen=True)

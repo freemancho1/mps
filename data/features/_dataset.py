@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import torch 
 import numpy as np 
-from typing import Optional 
+from typing import Optional, get_args
 
 from mps.core.config import cfg, msg 
 from mps.core.types import Bar, TrackType
@@ -34,6 +34,9 @@ class TripleBarrierDataset(torch.utils.data.Dataset):
         labeler: Optional[TripleBarrierLabeler] = None,
     ) -> None:
         self._track = cfg.modeling.default_track if track is None else track
+        if self._track not in get_args(TrackType):
+            raise TypeError(msg.feature.invalid_track_err(self._track, get_args(TrackType)))
+        
         self._lookback = cfg.data.lookback_minutes if lookback is None else lookback 
         self._labeler = TripleBarrierLabeler() if labeler is None else labeler
 
