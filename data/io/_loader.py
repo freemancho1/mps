@@ -41,11 +41,11 @@ class HistoricalDataLoader:
         
         cached_bars: list[Bar] = self._store.load_bars(ticker, start_dt, end_dt)
         if cached_bars and not force_refresh:
-            logger.point(msg.loader.load_result(cfg.str.store, cached_bars))
+            logger.debug(msg.loader.load_result(cfg.str.store, cached_bars))
             return cfg.str.store, cached_bars
         
         load_from, bars = self._fetch(ticker, start_date, end_date)
-        logger.point(msg.loader.load_result(load_from, bars))
+        logger.debug(msg.loader.load_result(load_from, bars))
         self._store.save_bars(bars)
         return load_from, bars
         

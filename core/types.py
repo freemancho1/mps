@@ -83,16 +83,15 @@ class Bar:
 @dataclass 
 class NumericInput:
     """ 
-    수치 트랙 입력.
+    수치 트랙 입력. ─ NumericNormalizer의 출력
     
     - window            : 롤링 Z-score 정규화 결과.
                           - 지금 지표가 평소 대비 얼마나 차이가 있나? 
                           - 학습 기반 모델(LSTM·Transformer, Phase-2+)의 입력값.
     - raw_window        : 정규화 이전 원본 값(생성된 14개 지표값 포함)
                           = 롤 모델(ThresholdModel, Phase-1)의 입력값
-    # TODO 9999-9999    : shape 값 확인하고 의미를 명확히 하고, window_size의 의미도 확인
-                        : 아래 timestamp값의 의미도 명시
-    - shape             : [lookback, n_features(=14)], dtype=float32
+    - window_size       : 이 입력 데이터를 만들 시점의 lookback
+                          · shape: [lookback, n_features(=14)], dtype=float32
     """
     ticker              : str 
     timestamp           : datetime 
@@ -104,7 +103,7 @@ class NumericInput:
 @dataclass 
 class PatternInput:
     """ 
-    패턴 트랙 입력.
+    패턴 트랙 입력. ─ PatternNormalizer의 출력
     
     - ohlcv_norms       : 윈도우 내 min-max 상대 정규화 OHLCV. shape [N, 5]
     - chart_image       : 비전 모델(Phase-3+) 도입 시 사용 예약
