@@ -90,8 +90,9 @@ class NumericInput:
                           - 학습 기반 모델(LSTM·Transformer, Phase-2+)의 입력값.
     - raw_window        : 정규화 이전 원본 값(생성된 14개 지표값 포함)
                           = 롤 모델(ThresholdModel, Phase-1)의 입력값
-    - window_size       : 이 입력 데이터를 만들 시점의 lookback
-                          · shape: [lookback, n_features(=14)], dtype=float32
+    - window_size       : 이 입력 데이터를 만들 시점의 lookback 
+                          · shape: window, raw_window 모두 동일
+                            [lookback, n_features(=14)], dtype=float32
     """
     ticker              : str 
     timestamp           : datetime 
@@ -113,3 +114,55 @@ class PatternInput:
     ohlcv_norm          : np.ndarray 
     chart_image         : Optional[np.ndarray] = None
 
+
+# ─────────────────────────────────────
+#   모델 출력(= 신호) + 거래 신호
+# ─────────────────────────────────────
+
+@dataclass 
+class NumericSignal:
+    """ 
+    수치 트랙 출력(신호) → SignalAggregator의 입력
+    
+    - confidence        : 신호에 대한 확신도로 0.0 ~ 1.0
+                          → 방향이 HOLD이면 0.0 고정
+    - feature_contrib   : 피처가 이 신호에 미친 기여(영향)도
+                          → 관측 가능성 충족하면서 사후 분석에 활용
+    - latency_ms        : 추론 시간 ─ LatencyFilter의 판단 근거
+    """
+    ticker              : str 
+    timestamp           : datetime 
+    direction           : SignalDirection
+    confidence          : float             
+    feature_contrib     : dict              # {"rsi_14": 0.45, .. }  sum() = 1.0
+    latency_ms          : float 
+    
+    
+@dataclass 
+class PatternSignal:
+    """ 
+    패턴 트랙 출력(신호) → SignalAggregator의 입력
+    
+    - pattern_name      : 감지된 패턴 이름 (PatternName type)
+    - source            : "RULE"(phase-1), "CNN"(phase-2), "VISION"(phase-3+)
+    """
+    ticker              : str 
+    timestamp           : datetime 
+    direction           : SignalDirection
+    confidence          : float 
+    pattern_name        : PatternName 
+    source              : PatternSource
+    latency_ms          : float
+    
+    
+@dataclass 
+class TradeSignal:
+    """ 
+    두 트랙의 신호를 받아 합성한 신호 → RiskManager의 입력
+    ─ 롱 온리이므로 방향은 항상 BUY (숏 방식은 없음)
+    
+    - combined_score    : 두 트랙의 가중치를 적용한 신뢰도 (활성 가중치로 정규화)
+                          # TODO 0625-1531 - Config 작업 후
+                          → cfg.trade
+    """
+    

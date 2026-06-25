@@ -12,9 +12,9 @@ class NumericNormalizer:
     """ 
     수치 트랙 정규화 ─ 롤링 Z-score 
     
-    #TODO 8888: 최종 출력 shape 확인
-    입력: FeatureExtractor의 raw 피처 행렬 [N, 14] 
-    출력: NumericInput (window: 마지막 lookback 행 Z-score + raw_window(원본))
+    입력: FeatureExtractor의 extract() 결과
+    출력: NumericInput 
+         (window: 마지막 lookback 행 Z-score, raw_window: 해당 window의 원본)
     """
     def __init__(self, window_size: Optional[int] = None) -> None:
         self._window_size = cfg.data.lookback_minutes \
@@ -22,7 +22,7 @@ class NumericNormalizer:
         
     # base_bar는 feature_metrix를 만든 마지막 봉
     def transform(
-        self, base_bar: Bar, feature_metrix: np.ndarray
+        self, bars: list[Bar], feature_metrix: np.ndarray
     ) -> NumericInput:
         # TODO 8888: transform이 사이즈 오류 났을 때 진행사항 확인
         if len(feature_metrix) < self._window_size:
@@ -38,6 +38,7 @@ class NumericNormalizer:
         std = window.std(axis=0) + cfg.sys.zero
         normalized = (window - mean) / std 
         
+        base_bar = bars[-1]
         return NumericInput(
             ticker=base_bar.ticker,
             timestamp=base_bar.timestamp,

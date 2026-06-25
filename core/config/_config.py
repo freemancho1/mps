@@ -235,7 +235,129 @@ class _BarrierConfig:
     stop_loss               : float         = 0.01      # -1%
     time_horizon            : int           = 60        # 최대 기다림 시간(60분)
 
+
+@dataclass(frozen=True)
+class _CostConfig:
+    commission_rate         : float         = 0.00015   # 위탁 수수료 (편도 0.015%)
+    tax_rate                : float         = 0.0018    # 증권 거래세(매도 시만 0.18%)
+    slippage_rate           : float         = 0.001     # 슬리피지 (편도 0.1%)
     
+    @property 
+    def roundtrip_rate(self) -> float:
+        """ 왕복 비용 비율 (수수료*2 + 세금 + 슬리피지*2) = 0.41% """
+        return (self.commission_rate + self.slippage_rate) * 2 + self.tax_rate
+
+
+@dataclass(frozen=True)
+class _NumericSignalConfig:
+    # 수치 트랙 전체 가중치
+    weight                  : float         = 0.5
+    
+    # 무신호 기본값(field로 처리)
+    no_signal               : tuple[SignalDirection, float, dict] = field(
+                                default_factory=lambda: ("HOLD", 0.0, {})
+                            )
+    
+    # Phase-1 롤 모델 용
+    rsi_oversold            : float         = 35.0      # RSI 과매도 경계(이하면 BUY 후보)
+    rsi_overbought          : float         = 65.0      # RSI 과매수 경계(롱 온리에선 미사용)
+    rsi_closeover_base      : float         = 0.3       # 크로스오버 베이스 신뢰도
+    
+    
+@dataclass(frozen=True)
+class _PatternSignalConfig:
+    # 패턴 트랙 전체 가중치
+    weight                  : float         = 0.5
+    
+    # 무신호 기본값
+    no_signal               : tuple[SignalDirection, float, PatternName] = (
+                                "HOLD", 0.0, "NONE"
+                            )
+    
+    bar1_confidence         : float         = 0.6       # 단봉 (가장 낮음)
+    bar2_confidence         : float         = 0.7       # 이중봉
+    bar3_confidence         : float         = 0.75      # 삼봉 (가장 높음)
+    
+    chart_confidence        : float         = 0.65      # 21개 봉으로 조사(잘 안나옴)
+    chart_min_size          : int           = 21
+    
+
+@dataclass(frozen=True)
+class _SignalConfig:
+    numeric                 : _NumericSignalConfig = field(default_factory=_NumericSignalConfig)
+    pattern                 : _PatternSignalConfig = field(default_factory=_PatternSignalConfig)
+    
+    # [수익률 레버] 결합 정책 ─ v3.1 변경
+    #   - "CONFLUENCE"(구 require_confluence=True): 두 트랙 모두 BUY일 때만 진입(AND).
+    #       두 약분류기의 AND는 거래가 극단적으로 고갈되고, 한 축만 강하게 맞은 기회를 버림.
+    #   - "WEIGHTED"(기본): 한쪽만 BUY여도 진입 허용(soft-OR).
+    #       두 트랙 동시 BUY 시 confluence_bonus를 가산해 '교차검증 합의'를 점수로 보상.
+    #       단일 트랙 진입도 ScoreFilter(min_combined_score=0.55)를 넘어야 하므로
+    #       '약한 신호 남발'은 점수 게이트가 계속 차단함.
+    aggregation_mode        : AggregationMode = "WEIGHTED"
+    # 두 트랙이 동시에 BUY일 때 combined_score에 더하는 합의 보너스(상한 1.0로 클립)
+    #   - "수치·패턴이 서로 검증한다.(Cross-Verification)" 원칙을 하드 게이트가 아닌
+    #     "점수 가산" 방식으로 인코딩 → 합의 신호가 단일 신호보다 우선 통과됨.
+    confluence_bonus        : float         = 0.1
+    
+    # 최대 지연 시간 (실제 KIS API를 이용할 경우 테스트를 통합 조정 필요)
+    max_latency_ms          : float         = 5_000.0
+    
+    
+@dataclass(frozen=True)
+class _RiskConfig:
+    _barrier                : _BarrierConfig = field(default_factory=_BarrierConfig)
+    _cost                   : _CostConfig   = field(default_factory=_CostConfig)
+    
+    # 1회 투입가능 금액 상한선 = 초기 자본의 10%
+    max_capital_pct         : float         = 0.1
+    
+    # [수익성-B] 진입 컷오프: 강제청산(15:15) N분 전부터 신규 진입 금지.
+    # - 마감 임박 진입은 보유 가능 시간이 짧아 익절 확률은 낮고,
+    #   왕복 비용은 확정(=0.41%)으로 구조적으로 손실 거래일 가능성이 높음
+    entry_cutoff_minutes    : int           = 30
+    
+    # [수익성-C] 손익분기 신뢰도 위에 얹는 안전 마진
+    # - 최종 임계값 min_combined_score에서 
+    #   (sl+왕복비용)/(tp+sl)+score_margin으로 산출 = 0.550
+    score_margin            : float         = 0.08
+    
+    # [수익성-D] 신뢰도에 비례한 베팅 사이즈 조정
+    # - Kelly 이전의 보수적 확신 비례 베팅에 사용(Phase-3+)
+    use_conviction_sizing   : bool          = True
+    conviction_min_factor   : float         = 0.7
+    conviction_max_factor   : float         = 1.3
+    
+    # [수익성-E] 브레이크이븐 스톱: 미실현 + Trigger 도달 시 "다읍 봉부터"
+    # - 손절선을 '진입가 * (1 + buffer)'로 상향
+    # - buffer(+0.5%) > 왕복비용(0.41%) → 되밀려도 본전 이상으로 마감
+    use_breakeven_stop      : float         = True 
+    breakeven_trigger       : float         = 0.01      # +1.0% 도달 시
+    breakeven_buffer        : float         = 0.005     # 스톱을 진입가 +0.5%로 지정
+    
+    @property 
+    def breakeven_confidence(self) -> float:
+        """ 
+        [수익성-C] 손익분기 신뢰도 ─ 기대값이 0이 되면 BUY 확률 p*
+        
+        TakeProfit/StopLoss 두 결과만 가정한 단순 기대값 모델:
+          - EV = p·TP - (1-p)·SL - 왕복비용 = 0
+            → p* = (SL + 비용) / (TP + SL)
+          - 기본 파라미터(2% / 1% / 0.41%)에서 p* = 0.470
+        """
+        return (self._barrier.stop_loss + self._cost.roundtrip_rate) \
+             / (self._barrier.take_profit + self._barrier.stop_loss)
+             
+    # 신호통과 임계값 = 손익분기 신뢰도 + 안전마진 = 0.47 + 0.08 = 0.55
+    @property 
+    def min_combined_score(self) -> float:
+        return self.breakeven_confidence * self.score_margin             
+    
+    # [수익성-F] 일일 손실 한도: 당일 실현 손실이 자본의 -5%를 넘으면
+    #            당일 신규 진입 중단 (레짐 급변 시 연손 손절 차단)
+    daily_loss_limit_pct    : float         = 0.05      # 5%
+    
+
 # ─────────────────────────────────────
 #   데이터 상수 ─ 룩백·합성 데이터 등 데이터 관련 상수
 # ─────────────────────────────────────
@@ -297,24 +419,28 @@ class _DataConfig:
 @dataclass(frozen=True)
 class _Config:
 
-    run                     : _RunConfig    = field(default_factory=_RunConfig)
-    sys                     : _SystemConfig = field(default_factory=_SystemConfig)
-    path                    : _PathConfig   = field(default_factory=_PathConfig)
-    kis                     : _KisApiConfig = field(default_factory=_KisApiConfig)
+    run         : _RunConfig            = field(default_factory=_RunConfig)
+    sys         : _SystemConfig         = field(default_factory=_SystemConfig)
+    path        : _PathConfig           = field(default_factory=_PathConfig)
     
-    market                  : _MarketConfig = field(default_factory=_MarketConfig)
-
-    lstm                    : _LSTMConfig   = field(default_factory=_LSTMConfig)
-    cnn                     : _CNNConfig    = field(default_factory=_CNNConfig)
-    params                  : _HyperparameterConfig = field(default_factory=_HyperparameterConfig)
-    modeling                : _ModelingConfig = field(default_factory=_ModelingConfig)
+    kis         : _KisApiConfig         = field(default_factory=_KisApiConfig)
+        
+    market      : _MarketConfig         = field(default_factory=_MarketConfig)
     
-    barrier                 : _BarrierConfig = field(default_factory=_BarrierConfig)
-
-    data                    : _DataConfig   = field(default_factory=_DataConfig)
+    lstm        : _LSTMConfig           = field(default_factory=_LSTMConfig)
+    cnn         : _CNNConfig            = field(default_factory=_CNNConfig)
+    params      : _HyperparameterConfig = field(default_factory=_HyperparameterConfig)
+    modeling    : _ModelingConfig       = field(default_factory=_ModelingConfig)
     
-    key                     : _KeyValues    = field(default_factory=_KeyValues)
-    str                     : _StringValue  = field(default_factory=_StringValue)
+    barrier     : _BarrierConfig        = field(default_factory=_BarrierConfig)
+    cost        : _CostConfig           = field(default_factory=_CostConfig)
+    signal      : _SignalConfig         = field(default_factory=_SignalConfig)
+    risk        : _RiskConfig           = field(default_factory=_RiskConfig)
+    
+    data        : _DataConfig           = field(default_factory=_DataConfig)
+    
+    key         : _KeyValues            = field(default_factory=_KeyValues)
+    str         : _StringValue          = field(default_factory=_StringValue)
 
 
 config = _Config()
