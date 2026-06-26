@@ -162,7 +162,140 @@ class TradeSignal:
     ─ 롱 온리이므로 방향은 항상 BUY (숏 방식은 없음)
     
     - combined_score    : 두 트랙의 가중치를 적용한 신뢰도 (활성 가중치로 정규화)
-                          # TODO 0625-1531 - Config 작업 후
-                          → cfg.trade
+                          → cfg.risk.min_combined_score(0.55) 이상일 때만 필터 통과
     """
+    ticker              : str 
+    timestamp           : datetime 
+    direction           : SignalDirection 
+    combined_score      : float 
+    numeric_confidence  : float 
+    pattern_confidence  : float 
+    total_latency_ms    : float
+
+
+# ─────────────────────────────────────
+#   주문·거래 데이터
+# ─────────────────────────────────────
+
+@dataclass 
+class Order:
+    """ 
+    RiskManager가 승인하여 실행 레이어(PaperTrader·KISOrderClient)에 전달하는 주문.
+
+    - stop_loss·take_profit: "체결가" 기준으로 산출한 절대 가격(원)
+      → 브레이크이븐 스톱 발동 시 stop_loss는 상향 조정될 수 있음.(가변 필드)
+    - expire_at: min(체결시간+time_horizon, 당일 강제청산 시각 15:15)
+    - order_id: "{ticker}_{YYYYMMDD_HHMMSS}"
+    - breakeven_armed: [수익성-E] + trigger 도달 여부
+      → 다음 봉부터 상향된 스톱을 적용하기 위한 상태 플래그 
+         (같은 봉 내 터지 순서는 알 수 없음)
+    """
+    order_id            : str
+    order_type          : OrderType 
+    ticker              : str 
+    direction           : OrderAction
+    take_profit         : float 
+    stop_loss           : float 
+    expire_at           : datetime 
+    quantity            : int
+    # 진입가 - submit_order 이후 채워짐
+    # → 최초 주문 정보가 생성될 당시에는 이 값이 생성되지 않고,
+    #    주문 정보만 생성함
+    price               : Optional[float] = None
+    breakeven_armed     : bool = False 
+
+
+@dataclass 
+class Reject:
+    """ 
+    RiskManager가 주문을 거부할 때 반환하는 사유 객체.
+
+    진입 컷오프·손실 일일 한도 초과·현금 부족 등 거부 사유를 구조화해 남김
+    ─ "왜 진입하지 않았는가?"도 관측 가능해야 함.
+    """
+    reason              : RejectReason
+    signal              : TradeSignal 
+
+
+@dataclass 
+class OrderResult:
+    """ 
+    주문 체결 후 체결 결과. 
+    ─ Order와 항상 쌍으로 사용되기 때문에 'ticker' 속성은 없음
+
+    - timestamp : 백테스트에서 "시뮬레이션 시각(봉 시각)"을 주입받아 기록.
+                  - 벽시계 datetime.now()를 쓰면 로그가 실제 시각축과 어긋남.
+    - slippage  : 기대 가격과 체결 가격의 차이(양수 = 투자자에게 분리)
+    """
+    order_id            : str 
+    timestamp           : datetime 
+    status              : OrderStatus
+    filled_price        : float         # 실 체결가
+    filled_quantity     : float         # 실 체결량
+    slippage            : float         # 기대 가격 대비 체결가 차이
+
+
+@dataclass 
+class TradeRecord:
+    """ 
+    완결된 거래 한 건의 기록 (진입과 청산의 쌍)
+    ─ HistoricalSimulator가 청산 시 생성하여 리스트에 추가
+       PerformanceEvaluator.evaluate()의 입력으로 사용
+
+    - cost      : 왕복 "현금성 수수료" (= 매수 수수료 + 매도 수수료 + 세금)
+                  → 슬리피지는 체결가에 포함되어 있으므로 여기에 포함 금지.
+    - pnl_net   : 순손익(원) = (청산가 - 구매가) * 수량 - 비용(=cost)
+    """
+    ticker              : str 
+    entry_price         : float 
+    exit_price          : float 
+    quantity            : int 
+    entry_time          : datetime 
+    exit_time           : datetime 
+    exit_reason         : ExitReason 
+    cost                : float 
+    pnl_net             : float
+
+
+@dataclass 
+class PerformanceReport:
+    """ 
+    백테스트 성과 요약 ─ 포트폴리오 기준 정합
+
+    - total_return_pct  : 초기 자본 대비 순손익 비율(= Σpnl_net / capital)
+    - max_drawdown      : 실제 에쿼티 곡선(자본 + 청산순 누적 손익)의 최대 낙폭
+    - sharpe_ratio      : "일별" 수익률 mean/std * √242.
+    """
+    total_trades        : int 
+    win_rate            : float 
+    profit_factor       : float 
+    max_drawdown        : float 
+    sharpe_ratio        : float 
+    total_return_pct    : float 
+    avg_return_per_trade_pct: float 
+    total_cost          : float 
     
+    def __str__(self) -> str:
+        return (
+            f"총 거래: {self.total_trades:,}건, "
+            f"승률: {self.win_rate:.1%}, "
+            f"수익 인수: {self.profit_factor:.2f}, "
+            f"최대 낙폭: {self.max_drawdown:.1%}, "
+            f"샤프(일별): {self.sharpe_ratio:.2f}, "
+            f"총 수익률(자본대비): {self.total_return_pct:.2f}, "
+            f"거래당 수익률: {self.avg_return_per_trade_pct:.4%}, "
+            f"총 비용: {self.total_cost:,.0f}원"            
+        )    
+    
+    
+# ─────────────────────────────────────
+#   모델 학습 
+# ─────────────────────────────────────
+@dataclass 
+class TrainHistory:
+    """ 학습 곡선·조기 종료 추적 (재현 가능성: 결과와 함께 기록 권장) """
+    train_loss          : list[float]   = field(default_factory=list)
+    val_loss            : list[float]   = field(default_factory=list)
+    val_acc             : list[float]   = field(default_factory=list)
+    best_epoch          : int           = -1
+    best_val_loss       : float         = float("inf")    

@@ -30,10 +30,21 @@ class _FeatureMessages:
 
 
 @dataclass(frozen=True)
+class _ModelTrainerMessages: 
+    invalid_data_type       : mfn = lambda ds: f"학습용 데이터셋({ds.__class__.__name__}) 오류(Sized 함수 미구현)"
+    insufficiend_data       : mfn = lambda ds, base_size: f"학습용 데이터셋({ds.__class__.__name__}) 크기가 너무 작습니다. 입력 데이터 크기: {len(ds)}, 최소 데이터 크기: {base_size}"
+    too_much_embargo        : mfn = lambda e_size, b_size: CF(f"엠바고용 데이터가 너무 많습니다. 엠바고용 사이즈: {e_size}, 조정된 사이즈: {b_size}")
+    class_calibration       : mfn = lambda weights: CF(f"클래스 보정 결과: {weights}")
+
+
+@dataclass(frozen=True)
 class _Messages:
     store                   : _StoreMessages = _StoreMessages()
     loader                  : _LoaderMessages = _LoaderMessages()
     feature                 : _FeatureMessages = _FeatureMessages()
+    trainer                 : _ModelTrainerMessages = _ModelTrainerMessages()
+
+    logger_like             : mfn = lambda msg: CF(msg)
 
 
 messages                    : _Messages = _Messages()

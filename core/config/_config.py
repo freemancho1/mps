@@ -260,8 +260,8 @@ class _NumericSignalConfig:
     
     # Phase-1 롤 모델 용
     rsi_oversold            : float         = 35.0      # RSI 과매도 경계(이하면 BUY 후보)
-    rsi_overbought          : float         = 65.0      # RSI 과매수 경계(롱 온리에선 미사용)
-    rsi_closeover_base      : float         = 0.3       # 크로스오버 베이스 신뢰도
+    # rsi_overbought          : float         = 65.0      # RSI 과매수 경계(롱 온리에선 미사용)
+    closeover_base          : float         = 0.3       # 크로스오버 베이스 신뢰도
     
     
 @dataclass(frozen=True)
