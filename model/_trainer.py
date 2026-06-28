@@ -75,8 +75,59 @@ class ModelTrainer:
         epochs_no_improve = 0
 
         for epoch in range(self._epochs):
-        # TODO 9999:9999 잠온다!!!
+            # ── 학습:
+            model.train()
 
+            train_loss = 0.0
+            for batch_X, batch_y in train_loader:
+                batch_X = batch_X.to(self._device)
+                batch_y = batch_y.to(self._device)
+                optimizer.zero_grad()
+                loss = criterion(model(batch_X), batch_y)
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item() * len(batch_X)
+            train_loss /= len(train_ds)
+
+            # ── 검증:
+            model.eval()
+            val_loss, correct = 0.0, 0
+            with torch.no_grad():
+                for batch_X, batch_y in val_loader:
+                    batch_X = batch_X.to(self._device)
+                    batch_y = batch_y.to(self._device)
+                    logits = model(batch_X)
+                    val_loss += criterion(logits, batch_y).item() * len(batch_X)
+                    correct += (logits.argmax(dim=-1) == batch_y).sum().item()
+            val_loss /= len(val_ds)
+            val_acc = correct / len(val_ds)
+
+            history.train_loss.append(round(train_loss, 5))
+            history.val_loss.append(round(val_loss, 5))
+            history.val_acc.append(round(val_acc, 4))
+            logger.debug(msg.trainer.train_epoch_result(epoch, history))
+
+            # ── 조기종료 판정
+            if val_loss < history.best_val_loss:
+                history.best_epoch = epoch 
+                history.best_val_loss = val_loss 
+                best_state = {
+                    key: value.detach().clone()
+                    for key, value in model.state_dict().items()
+                }
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
+                if epochs_no_improve >= cfg.params.patience:
+                    break 
+
+        # 최고 좋은 모델 상태로 갱신
+        model.load_state_dict(best_state)
+        model.eval()
+
+        logger.info(msg.trainer.train_result(model, history))
+        return model, history
+    
 
 def _time_split(
     ds: Dataset, val_ratio: float, embargo: int

@@ -18,7 +18,11 @@ class _StoreMessages:
 
 @dataclass(frozen=True)
 class _LoaderMessages:
-    load_result             : mfn = lambda soc, bars: CF(f"데이터 로드 결과: 출처[{soc}], 크기[{len(bars)}], 기간: {bars[0].timestamp} ~ {bars[-1].timestamp}") if bars else CF(f"데이터 로드 결과: 출처[{soc}], 크기[0], 기간: 없음")
+    load_result             : mfn = lambda soc, bars: CF(
+                                f"데이터 로드 결과: 출처[{soc}], 크기[{len(bars)}], "
+                                f"기간: {bars[0].timestamp} ~ {bars[-1].timestamp}"
+                                if bars else f"데이터 로드 결과: 출처[{soc}], 크기[0], 기간: 없음"
+                            )
 
 
 @dataclass(frozen=True)
@@ -32,10 +36,26 @@ class _FeatureMessages:
 @dataclass(frozen=True)
 class _ModelTrainerMessages: 
     invalid_data_type       : mfn = lambda ds: f"학습용 데이터셋({ds.__class__.__name__}) 오류(Sized 함수 미구현)"
-    insufficiend_data       : mfn = lambda ds, base_size: f"학습용 데이터셋({ds.__class__.__name__}) 크기가 너무 작습니다. 입력 데이터 크기: {len(ds)}, 최소 데이터 크기: {base_size}"
-    too_much_embargo        : mfn = lambda e_size, b_size: CF(f"엠바고용 데이터가 너무 많습니다. 엠바고용 사이즈: {e_size}, 조정된 사이즈: {b_size}")
+    insufficiend_data       : mfn = lambda ds, base_size: (
+                                f"학습용 데이터셋({ds.__class__.__name__}) 크기가 너무 작습니다. "
+                                f"입력 데이터 크기: {len(ds)}, 최소 데이터 크기: {base_size}"
+                            )
+    too_much_embargo        : mfn = lambda e_size, b_size: CF(
+                                f"엠바고용 데이터가 너무 많습니다. "
+                                f"엠바고용 사이즈: {e_size}, 조정된 사이즈: {b_size}"
+                            )
     class_calibration       : mfn = lambda weights: CF(f"클래스 보정 결과: {weights}")
-
+    train_epoch_result      : mfn = lambda epoch, history: CF(
+                                f" - epoch[{epoch:02}]:"
+                                f" train-loss = {history.train_loss},"
+                                f" val-loss = {history.val_loss}, val-acc = {history.val_acc}"
+                            )
+    train_result            : mfn = lambda model, history: CF(
+                                f" - [MODEL TRAIN RESULT] Model: {model.__class__.__name__},"
+                                f" Best(Epoch: {history.best_epoch},"
+                                f" val-loss: {history.val_loss[history.best_epoch]},"
+                                f" val-acc: {history.val_acc[history.best_epoch]})"
+                            )
 
 @dataclass(frozen=True)
 class _Messages:
